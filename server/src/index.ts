@@ -2,6 +2,7 @@ import express from 'express';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
+import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import type { 
   Room, 
@@ -29,6 +30,14 @@ const io = new Server<ClientToServerEvents, ServerToClientEvents>(server, {
 
 app.use(cors());
 app.use(express.json());
+
+// Serve static files from React build
+app.use(express.static(path.join(__dirname, '../../client/build')));
+
+// Handle React routing, return all requests to React app
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../../client/build', 'index.html'));
+});
 
 // In-memory storage (w produkcji użyj bazy danych)
 const rooms = new Map<string, Room>();

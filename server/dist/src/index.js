@@ -7,19 +7,28 @@ const express_1 = __importDefault(require("express"));
 const http_1 = require("http");
 const socket_io_1 = require("socket.io");
 const cors_1 = __importDefault(require("cors"));
+const path_1 = __importDefault(require("path"));
 const app = (0, express_1.default)();
 const server = (0, http_1.createServer)(app);
 const io = new socket_io_1.Server(server, {
     cors: {
         origin: process.env.NODE_ENV === 'production'
-            ? [process.env.FRONTEND_URL || "https://planning-poker.vercel.app", "https://localhost:3000"]
+            ? true // Allow all origins for Vercel
             : ["http://localhost:3000", "http://localhost:3001"],
-        methods: ["GET", "POST"],
+        methods: ["GET", "POST", "PUT", "DELETE"],
         credentials: true
-    }
+    },
+    transports: ['polling', 'websocket'],
+    allowEIO3: true
 });
 app.use((0, cors_1.default)());
 app.use(express_1.default.json());
+// Serve static files from React build
+app.use(express_1.default.static(path_1.default.join(__dirname, '../../client/build')));
+// Handle React routing, return all requests to React app
+app.get('*', (req, res) => {
+    res.sendFile(path_1.default.join(__dirname, '../../client/build', 'index.html'));
+});
 // In-memory storage (w produkcji użyj bazy danych)
 const rooms = new Map();
 const userRooms = new Map(); // userId -> roomId
