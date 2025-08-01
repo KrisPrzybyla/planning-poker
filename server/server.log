@@ -82,3 +82,16 @@ Error: listen EADDRINUSE: address already in use :::3001
     at require.extensions..jsx.require.extensions..js (/private/tmp/ts-node-dev-hook-784019335641666.js:114:20)
     at require.extensions.<computed> (/private/tmp/ts-node-dev-hook-784019335641666.js:71:20)
 [ERROR] 21:51:43 Error: listen EADDRINUSE: address already in use :::3001
+[INFO] 21:57:48 Restarting: /Users/kprzybyla/Projects/test_poker/server/src/index.ts has been modified
+Error: listen EADDRINUSE: address already in use :::3001
+    at Server.setupListenHandle [as _listen2] (node:net:1372:16)
+    at listenInCluster (node:net:1420:12)
+    at Server.listen (node:net:1508:7)
+    at Object.<anonymous> (/Users/kprzybyla/Projects/test_poker/server/src/index.ts:272:8)
+    at Module._compile (node:internal/modules/cjs/loader:1105:14)
+    at Module._compile (/Users/kprzybyla/Projects/test_poker/server/node_modules/source-map-support/source-map-support.js:568:25)
+    at Module.m._compile (/private/tmp/ts-node-dev-hook-784019335641666.js:69:33)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1159:10)
+    at require.extensions..jsx.require.extensions..js (/private/tmp/ts-node-dev-hook-784019335641666.js:114:20)
+    at require.extensions.<computed> (/private/tmp/ts-node-dev-hook-784019335641666.js:71:20)
+[ERROR] 21:57:48 Error: listen EADDRINUSE: address already in use :::3001

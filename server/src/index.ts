@@ -31,10 +31,15 @@ const io = new Server<ClientToServerEvents, ServerToClientEvents>(server, {
 app.use(cors());
 app.use(express.json());
 
+// Health check endpoint BEFORE catch-all
+app.get('/health', (req, res) => {
+  res.json({ status: 'OK', rooms: rooms.size });
+});
+
 // Serve static files from React build
 app.use(express.static(path.join(__dirname, '../../client/build')));
 
-// Handle React routing, return all requests to React app
+// Handle React routing, return all requests to React app (AFTER static files)
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '../../client/build', 'index.html'));
 });
@@ -261,11 +266,6 @@ io.on('connection', (socket) => {
     userRooms.delete(socket.id);
     console.log(`User disconnected: ${socket.id}`);
   });
-});
-
-// Health check endpoint
-app.get('/health', (req, res) => {
-  res.json({ status: 'OK', rooms: rooms.size });
 });
 
 const PORT = process.env.PORT || 3001;

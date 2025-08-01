@@ -23,9 +23,13 @@ const io = new socket_io_1.Server(server, {
 });
 app.use((0, cors_1.default)());
 app.use(express_1.default.json());
+// Health check endpoint BEFORE catch-all
+app.get('/health', (req, res) => {
+    res.json({ status: 'OK', rooms: rooms.size });
+});
 // Serve static files from React build
 app.use(express_1.default.static(path_1.default.join(__dirname, '../../client/build')));
-// Handle React routing, return all requests to React app
+// Handle React routing, return all requests to React app (AFTER static files)
 app.get('*', (req, res) => {
     res.sendFile(path_1.default.join(__dirname, '../../client/build', 'index.html'));
 });
@@ -210,10 +214,6 @@ io.on('connection', (socket) => {
         userRooms.delete(socket.id);
         console.log(`User disconnected: ${socket.id}`);
     });
-});
-// Health check endpoint
-app.get('/health', (req, res) => {
-    res.json({ status: 'OK', rooms: rooms.size });
 });
 const PORT = process.env.PORT || 3001;
 server.listen(PORT, () => {
