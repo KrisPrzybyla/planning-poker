@@ -1,0 +1,42 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "api/socket.js",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "client/build/**",
+      "use": "@vercel/static"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/socket.io/(.*)",
+      "dest": "/api/socket"
+    },
+    {
+      "src": "/api/socket",
+      "dest": "/api/socket"
+    },
+    {
+      "src": "/room/(.*)",
+      "dest": "/client/build/index.html"
+    },
+    {
+      "src": "/static/(.*)",
+      "dest": "/client/build/static/$1"
+    },
+    {
+      "src": "/(.*\\.(js|css|png|jpg|jpeg|gif|ico|svg))",
+      "dest": "/client/build/$1"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/client/build/index.html"
+    }
+  ],
+  "env": {
+    "NODE_ENV": "production"
+  }
+}

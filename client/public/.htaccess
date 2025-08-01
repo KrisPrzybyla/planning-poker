@@ -1,0 +1,5 @@
+# Enable client-side routing for React app
+Options -MultiViews
+RewriteEngine On
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteRule ^ index.html [QR,L]

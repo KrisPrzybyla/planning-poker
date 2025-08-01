@@ -1,0 +1,27 @@
+services:
+  - type: web
+    name: planning-poker
+    env: node
+    buildCommand: |
+      cd server && npm install && npm run build &&
+      cd ../client && npm install && npm run build
+    startCommand: node server/dist/index.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3001
+    healthCheckPath: /health
+    autoDeploy: true
+    
+  - type: static
+    name: planning-poker-frontend
+    buildCommand: cd client && npm install && npm run build
+    staticPublishPath: ./client/build
+    routes:
+      - type: rewrite
+        source: /room/*
+        destination: /index.html
+    envVars:
+      - key: NODE_ENV
+        value: production

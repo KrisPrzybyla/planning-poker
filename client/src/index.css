@@ -1,0 +1,42 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
+
+/* Custom styles for Planning Poker cards */
+.poker-card {
+  @apply w-16 h-24 rounded-lg border-2 border-gray-300 bg-white shadow-md cursor-pointer transition-all duration-200 flex items-center justify-center text-xl font-bold;
+}
+
+.poker-card:hover {
+  @apply border-primary-500 shadow-lg transform scale-105;
+}
+
+.poker-card.selected {
+  @apply border-primary-600 bg-primary-50 text-primary-700;
+}
+
+.poker-card.revealed {
+  @apply border-success-500 bg-success-50 text-success-700;
+}
+
+.poker-card.coffee {
+  @apply text-2xl;
+}
+
+.user-avatar {
+  @apply w-10 h-10 rounded-full bg-gradient-to-r from-blue-400 to-purple-500 flex items-center justify-center text-white font-semibold text-sm;
+}

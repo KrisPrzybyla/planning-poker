@@ -1,0 +1,43 @@
+{
+  "name": "planning-poker",
+  "version": "1.0.0",
+  "description": "Simple Planning Poker application with Fibonacci cards",
+  "main": "server/dist/index.js",
+  "scripts": {
+    "dev": "concurrently \"npm run server:dev\" \"npm run client:dev\"",
+    "server:dev": "cd server && npm run dev",
+    "client:dev": "cd client && npm start",
+    "build": "npm run build:server && npm run build:client",
+    "build:server": "cd server && npm install && npm run build",
+    "build:client": "cd client && npm install && npm run build",
+    "start": "node server/dist/index.js",
+    "test": "npm run test:server && npm run test:client",
+    "test:server": "cd server && npm test",
+    "test:client": "cd client && npm test -- --watchAll=false",
+    "deploy": "chmod +x deploy.sh && ./deploy.sh",
+    "deploy:docker": "./deploy.sh docker",
+    "deploy:vercel": "./deploy.sh vercel",
+    "deploy:railway": "./deploy.sh railway",
+    "deploy:render": "./deploy.sh render",
+    "deploy:heroku": "./deploy.sh heroku",
+    "lint": "npm run lint:server && npm run lint:client",
+    "lint:server": "cd server && npm run lint",
+    "lint:client": "cd client && npm run lint",
+    "clean": "rm -rf server/dist client/build node_modules server/node_modules client/node_modules"
+  },
+  "keywords": ["planning-poker", "agile", "scrum", "fibonacci", "estimation"],
+  "author": "Rovo Dev",
+  "license": "MIT",
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=8.0.0"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/planning-poker.git"
+  },
+  "homepage": "https://planning-poker.vercel.app"
+}
