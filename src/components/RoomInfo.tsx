@@ -18,7 +18,6 @@ interface RoomInfoProps {
 const RoomInfo = ({ roomId }: RoomInfoProps) => {
   const toast = useToast();
   const roomUrl = `${window.location.origin}/room/${roomId}`;
-  const { hasCopied: hasRoomIdCopied, onCopy: onCopyRoomId } = useClipboard(roomId);
   const { hasCopied: hasUrlCopied, onCopy: onCopyUrl } = useClipboard(roomUrl);
 
   const handleShare = async () => {
@@ -61,16 +60,7 @@ const RoomInfo = ({ roomId }: RoomInfoProps) => {
         <Text fontSize="2xl" fontWeight="bold" letterSpacing="wider" mb={2}>
           {formatRoomCode(roomId)}
         </Text>
-        <Flex mt={2} gap={2}>
-          <Tooltip label="Copy Room Code">
-            <Button
-              size="sm"
-              onClick={onCopyRoomId}
-              colorScheme={hasRoomIdCopied ? 'green' : 'gray'}
-            >
-              {hasRoomIdCopied ? 'Copied!' : 'Copy Code'}
-            </Button>
-          </Tooltip>
+        <Flex mt={2} justify="center">
           <Tooltip label={navigator.share ? 'Share Room Link' : 'Copy Room Link'}>
             <Button size="sm" onClick={handleShare} colorScheme="blue">
               {navigator.share ? 'Share' : hasUrlCopied ? 'Copied!' : 'Copy Link'}
