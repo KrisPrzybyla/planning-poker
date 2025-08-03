@@ -18,38 +18,17 @@ interface RoomInfoProps {
 const RoomInfo = ({ roomId }: RoomInfoProps) => {
   const toast = useToast();
   const roomUrl = `${window.location.origin}/room/${roomId}`;
-  const { hasCopied: hasRoomIdCopied, onCopy: onCopyRoomId } = useClipboard(roomId);
   const { hasCopied: hasUrlCopied, onCopy: onCopyUrl } = useClipboard(roomUrl);
 
-  const handleShare = async () => {
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: 'Join my Planning Poker session',
-          text: `Join my Planning Poker session with code: ${roomId}`,
-          url: roomUrl,
-        });
-      } catch (error) {
-        if (error instanceof Error && error.name !== 'AbortError') {
-          toast({
-            title: 'Error sharing',
-            description: 'Could not share the room link',
-            status: 'error',
-            duration: 3000,
-            isClosable: true,
-          });
-        }
-      }
-    } else {
-      onCopyUrl();
-      toast({
-        title: 'Link copied',
-        description: 'Room link copied to clipboard',
-        status: 'success',
-        duration: 2000,
-        isClosable: true,
-      });
-    }
+  const handleCopyLink = () => {
+    onCopyUrl();
+    toast({
+      title: 'Link copied',
+      description: 'Room link copied to clipboard',
+      status: 'success',
+      duration: 2000,
+      isClosable: true,
+    });
   };
 
   return (
@@ -61,19 +40,10 @@ const RoomInfo = ({ roomId }: RoomInfoProps) => {
         <Text fontSize="2xl" fontWeight="bold" letterSpacing="wider" mb={2}>
           {formatRoomCode(roomId)}
         </Text>
-        <Flex mt={2} gap={2}>
-          <Tooltip label="Copy Room Code">
-            <Button
-              size="sm"
-              onClick={onCopyRoomId}
-              colorScheme={hasRoomIdCopied ? 'green' : 'gray'}
-            >
-              {hasRoomIdCopied ? 'Copied!' : 'Copy Code'}
-            </Button>
-          </Tooltip>
-          <Tooltip label={navigator.share ? 'Share Room Link' : 'Copy Room Link'}>
-            <Button size="sm" onClick={handleShare} colorScheme="blue">
-              {navigator.share ? 'Share' : hasUrlCopied ? 'Copied!' : 'Copy Link'}
+        <Flex mt={2} justify="center">
+          <Tooltip label="Copy Room Link">
+            <Button size="sm" onClick={handleCopyLink} colorScheme="blue">
+              {hasUrlCopied ? 'Copied!' : 'Copy Link'}
             </Button>
           </Tooltip>
         </Flex>
