@@ -198,6 +198,14 @@ const RoomPage = () => {
         </ModalContent>
       </Modal>
 
+      {/* Header with title and room info */}
+      <Flex justify="space-between" align="flex-start" mb={6}>
+        <Heading as="h1" size="lg">
+          Planning Poker
+        </Heading>
+        <RoomInfo roomId={room.id} />
+      </Flex>
+
       <Grid
         templateColumns={{ base: '1fr', lg: '3fr 1fr' }}
         gap={6}
@@ -205,12 +213,6 @@ const RoomPage = () => {
         {/* Main Content */}
         <GridItem>
           <Flex direction="column" gap={6}>
-            <Flex justify="space-between" align="center">
-              <Heading as="h1" size="lg">
-                Planning Poker
-              </Heading>
-              <RoomInfo roomId={room.id} />
-            </Flex>
 
             {room.currentStory ? (
               <CurrentStory

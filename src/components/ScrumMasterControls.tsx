@@ -28,9 +28,7 @@ const ScrumMasterControls = ({
   const { 
     revealResults, 
     resetVoting, 
-    endSession,
-    room,
-    socket 
+    endSession
   } = useRoom();
   const { isOpen, onOpen, onClose } = useDisclosure();
   const toast = useToast();

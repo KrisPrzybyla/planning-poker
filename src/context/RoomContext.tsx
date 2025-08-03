@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, ReactNode, useRef } from 'react';
 import { io, Socket } from 'socket.io-client';
-import { Room, User, Story, Vote, VotingStats } from '../types';
+import { Room, User, Story, VotingStats } from '../types';
 import { calculateVotingStats } from '../utils/votingUtils';
 
 interface RoomContextType {
@@ -69,7 +69,7 @@ export const RoomProvider = ({ children }: RoomProviderProps) => {
 
   useEffect(() => {
     // Initialize socket connection
-    const socketInstance = io('http://localhost:3001');
+    const socketInstance = io('http://localhost:3000');
     setSocket(socketInstance);
 
     socketInstance.on('connect', () => {

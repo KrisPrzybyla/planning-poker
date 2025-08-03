@@ -4,13 +4,12 @@ import {
   Container,
   Heading,
   Text,
+  VStack,
   Tabs,
   TabList,
   TabPanels,
   Tab,
   TabPanel,
-  VStack,
-  Image,
   Flex,
 } from '@chakra-ui/react';
 import CreateRoomForm from '../components/CreateRoomForm';

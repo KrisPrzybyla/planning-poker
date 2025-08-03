@@ -23,7 +23,7 @@ const getTooltip = (value: FibonacciCardType): string => {
 const FibonacciCard: React.FC<FibonacciCardProps> = ({
   value,
   isSelected = false,
-  isRevealed = false,
+
   onClick,
   isDisabled = false,
 }) => {

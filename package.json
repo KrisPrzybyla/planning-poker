@@ -9,7 +9,11 @@
     "dev:all": "concurrently \"npm run dev\" \"npm run server\"",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "docker:build": "docker build -t planning-poker .",
+    "docker:run": "docker run -p 3000:3000 planning-poker",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down"
   },
   "dependencies": {
     "@chakra-ui/react": "^2.8.2",

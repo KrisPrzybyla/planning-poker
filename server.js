@@ -3,9 +3,17 @@ import { createServer } from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
 import { v4 as uuidv4 } from 'uuid';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 app.use(cors());
+
+// Serve static files from the dist directory
+app.use(express.static(path.join(__dirname, 'dist')));
 
 const server = createServer(app);
 const io = new Server(server, {
@@ -460,13 +468,13 @@ io.on('connection', (socket) => {
   });
 });
 
-// Basic route for testing
-app.get('/', (req, res) => {
-  res.send('Planning Poker Server is running');
+// Handle React Router (SPA) - serve index.html for all non-API routes
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 
 // Start server
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
