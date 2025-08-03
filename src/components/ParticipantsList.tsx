@@ -34,7 +34,7 @@ const ParticipantsList = ({
 
   return (
     <Box p={4} borderWidth="1px" borderRadius="lg" bg="white">
-      <Heading size="sm" mb={3}>
+      <Heading size="md" mb={3} fontSize="22px">
         Participants ({users.length})
       </Heading>
       <List spacing={2}>
@@ -42,32 +42,56 @@ const ParticipantsList = ({
           const { hasVoted, voteValue } = getUserVoteStatus(user.id);
           return (
             <ListItem key={user.id}>
-              <Flex align="center" justify="space-between">
-                <Flex align="center">
-                  <Avatar size="xs" name={user.name} mr={2} />
-                  <Text fontWeight={user.role === 'Scrum Master' ? 'bold' : 'normal'}>
+              <Flex align="center" justify="space-between" w="100%">
+                <Flex align="center" flex="1" minW="0">
+                  <Avatar size="sm" name={user.name} mr={3} />
+                  <Text 
+                    fontWeight="medium" 
+                    fontSize="18px"
+                    isTruncated
+                    mr={2}
+                  >
                     {user.name}
                   </Text>
                   {user.role === 'Scrum Master' && (
-                    <Badge ml={2} colorScheme="purple" fontSize="xs">
+                    <Badge 
+                      colorScheme="purple" 
+                      variant="solid" 
+                      fontSize="xs"
+                      px={2}
+                      py={1}
+                    >
                       SM
                     </Badge>
                   )}
                 </Flex>
-                {isVotingActive && (
-                  <Badge
-                    colorScheme={hasVoted ? 'green' : 'gray'}
-                    variant={hasVoted ? 'solid' : 'outline'}
-                    fontSize="xs"
-                  >
-                    {hasVoted ? 'Voted' : 'Not Voted'}
-                  </Badge>
-                )}
-                {isResultsVisible && hasVoted && (
-                  <Badge colorScheme="blue" fontSize="sm">
-                    {voteValue}
-                  </Badge>
-                )}
+                <Flex align="center" gap={2} flexShrink={0}>
+                  {isVotingActive && (
+                    <Badge
+                      colorScheme={hasVoted ? 'green' : 'gray'}
+                      variant={hasVoted ? 'solid' : 'outline'}
+                      fontSize="xs"
+                      minW="70px"
+                      textAlign="center"
+                      px={2}
+                      py={1}
+                    >
+                      {hasVoted ? 'VOTED' : 'PENDING'}
+                    </Badge>
+                  )}
+                  {isResultsVisible && hasVoted && (
+                    <Badge 
+                      colorScheme="blue" 
+                      fontSize="md"
+                      minW="36px"
+                      textAlign="center"
+                      px={2}
+                      py={1}
+                    >
+                      {voteValue}
+                    </Badge>
+                  )}
+                </Flex>
               </Flex>
             </ListItem>
           );
