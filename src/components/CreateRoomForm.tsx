@@ -82,6 +82,7 @@ const CreateRoomForm = () => {
                 onChange={(e) => setUserName(e.target.value)}
                 placeholder="Enter your name"
                 size="lg"
+                autoFocus
               />
             </FormControl>
 

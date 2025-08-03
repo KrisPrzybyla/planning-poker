@@ -97,10 +97,15 @@ const RoomPage = () => {
   useEffect(() => {
     if (!roomId || !isConnected) return;
 
-    // If user is not in a room, redirect to join page
-    if (isConnected && !currentUser && !error) {
-      navigate(`/join/${roomId}`);
-    }
+    // Give some time for auto-rejoin to work before redirecting
+    const timer = setTimeout(() => {
+      // If user is not in a room after auto-rejoin attempt, redirect to join page
+      if (isConnected && !currentUser && !error) {
+        navigate(`/join/${roomId}`);
+      }
+    }, 2000); // Wait 2 seconds for auto-rejoin
+
+    return () => clearTimeout(timer);
   }, [roomId, currentUser, isConnected, error, navigate]);
 
   const handleSelectCard = (value: FibonacciCardType) => {
@@ -160,7 +165,7 @@ const RoomPage = () => {
     );
   }
 
-  const isScrumMaster = currentUser.role === 'Scrum Master';
+  const isScrumMaster = currentUser.role === 'Scrum Master' || currentUser.role === 'Temporary Scrum Master';
 
   const handleRevealResults = () => {
     onClose();

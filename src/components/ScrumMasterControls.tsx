@@ -69,14 +69,26 @@ const ScrumMasterControls = ({
     }
   };
 
+  const handleNewVoting = () => {
+    // If voting is active and results are not visible, show confirmation
+    if (isVotingActive && !isResultsVisible) {
+      const confirmed = window.confirm(
+        'Voting is currently in progress. Starting a new vote will reset all current votes. Do you want to continue?'
+      );
+      if (!confirmed) {
+        return;
+      }
+    }
+    onOpen();
+  };
+
   return (
     <>
       <Box p={4} borderWidth="1px" borderRadius="lg" bg="white">
         <Flex direction="column" gap={3}>
           <Button
             colorScheme="blue"
-            onClick={onOpen}
-            isDisabled={isVotingActive && !isResultsVisible}
+            onClick={handleNewVoting}
           >
             {hasStory ? 'New Voting' : 'Add Voting'}
           </Button>
