@@ -53,6 +53,51 @@ npm run server
 npm run build
 ```
 
+## Uruchomienie w Docker
+
+### Wymagania
+
+- Docker
+- Docker Compose (opcjonalnie)
+
+### Uruchomienie z Docker Compose (zalecane)
+
+```bash
+# Budowanie i uruchomienie aplikacji
+npm run docker:up
+
+# Zatrzymanie aplikacji
+npm run docker:down
+```
+
+### Uruchomienie z Docker (ręcznie)
+
+```bash
+# Budowanie obrazu Docker
+npm run docker:build
+
+# Uruchomienie kontenera
+npm run docker:run
+```
+
+### Ręczne polecenia Docker
+
+```bash
+# Budowanie obrazu
+docker build -t planning-poker .
+
+# Uruchomienie kontenera
+docker run -p 3000:3000 planning-poker
+
+# Uruchomienie z docker-compose
+docker-compose up -d
+
+# Zatrzymanie
+docker-compose down
+```
+
+Po uruchomieniu aplikacja będzie dostępna pod adresem: `http://localhost:3000`
+
 ## Struktura projektu
 
 - `/src` - kod źródłowy aplikacji klienckiej

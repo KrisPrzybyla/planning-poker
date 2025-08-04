@@ -3,9 +3,17 @@ import { createServer } from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
 import { v4 as uuidv4 } from 'uuid';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 app.use(cors());
+
+// Serve static files from the dist directory
+app.use(express.static(path.join(__dirname, 'dist')));
 
 const server = createServer(app);
 const io = new Server(server, {
@@ -57,6 +65,7 @@ io.on('connection', (socket) => {
         name: userName,
         role: 'Scrum Master', // Creator is always Scrum Master
         roomId,
+        isConnected: true,
       };
 
       // Create room object
@@ -135,6 +144,7 @@ io.on('connection', (socket) => {
         name: userName,
         role: 'Participant', // Joiners are always Participants
         roomId,
+        isConnected: true,
       };
 
       // Add user to room
@@ -158,6 +168,67 @@ io.on('connection', (socket) => {
     }
   });
 
+  // Rejoin an existing room (for page refresh)
+  socket.on('rejoinRoom', ({ roomId, userId }, callback) => {
+    try {
+      // Check if room exists
+      if (!rooms.has(roomId)) {
+        callback({ success: false, error: 'Room not found' });
+        return;
+      }
+
+      const room = rooms.get(roomId);
+
+      // Check if user exists in room
+      const user = room.users.find((u) => u.id === userId);
+      if (!user) {
+        callback({ success: false, error: 'User not found in room' });
+        return;
+      }
+
+      // Mark user as connected
+      user.isConnected = true;
+      delete user.disconnectedAt;
+
+      // If rejoining user is displaced Scrum Master, restore their role
+      if (user.role === 'Displaced Scrum Master') {
+        // Find current temporary SM and demote them
+        const tempSM = room.users.find(u => u.role === 'Temporary Scrum Master');
+        if (tempSM) {
+          tempSM.role = 'Participant';
+          console.log(`User ${tempSM.name} demoted from Temporary Scrum Master to Participant in room ${roomId}`);
+        }
+        
+        // Restore original SM
+        user.role = 'Scrum Master';
+        console.log(`User ${user.name} restored as Scrum Master in room ${roomId}`);
+        
+        // Send notification about SM restoration
+        io.to(roomId).emit('scrumMasterChanged', {
+          newScrumMaster: user,
+          reason: 'original_reconnected',
+          previousTempScrumMaster: tempSM
+        });
+      }
+
+      // Join socket to room
+      socket.join(roomId);
+      socket.data.userId = userId;
+      socket.data.roomId = roomId;
+
+      // Send success response
+      callback({ success: true, user });
+
+      // Broadcast room update to all users in the room
+      io.to(roomId).emit('roomUpdated', room);
+
+      console.log(`User ${user.name} rejoined room: ${roomId}`);
+    } catch (error) {
+      console.error('Error rejoining room:', error);
+      callback({ success: false, error: 'Failed to rejoin room' });
+    }
+  });
+
   // Start voting on a story
   socket.on('startVoting', ({ roomId, story }) => {
     try {
@@ -167,9 +238,9 @@ io.on('connection', (socket) => {
       const room = rooms.get(roomId);
       const userId = socket.data.userId;
 
-      // Check if user is Scrum Master
+      // Check if user is Scrum Master or Temporary Scrum Master
       const user = room.users.find((u) => u.id === userId);
-      if (!user || user.role !== 'Scrum Master') return;
+      if (!user || (user.role !== 'Scrum Master' && user.role !== 'Temporary Scrum Master')) return;
 
       // Increment voting count
       room.votingCount = (room.votingCount || 0) + 1;
@@ -238,9 +309,9 @@ io.on('connection', (socket) => {
       const room = rooms.get(roomId);
       const userId = socket.data.userId;
 
-      // Check if user is Scrum Master
+      // Check if user is Scrum Master or Temporary Scrum Master
       const user = room.users.find((u) => u.id === userId);
-      if (!user || user.role !== 'Scrum Master') return;
+      if (!user || (user.role !== 'Scrum Master' && user.role !== 'Temporary Scrum Master')) return;
 
       // Update room
       room.isResultsVisible = true;
@@ -263,9 +334,9 @@ io.on('connection', (socket) => {
       const room = rooms.get(roomId);
       const userId = socket.data.userId;
 
-      // Check if user is Scrum Master
+      // Check if user is Scrum Master or Temporary Scrum Master
       const user = room.users.find((u) => u.id === userId);
-      if (!user || user.role !== 'Scrum Master') return;
+      if (!user || (user.role !== 'Scrum Master' && user.role !== 'Temporary Scrum Master')) return;
 
       // Clear votes if there's a current story
       if (room.currentStory) {
@@ -291,7 +362,7 @@ io.on('connection', (socket) => {
     if (!room) return;
 
     const user = room.users.find(u => u.id === socket.data.userId);
-    if (!user || user.role !== 'Scrum Master') return;
+    if (!user || (user.role !== 'Scrum Master' && user.role !== 'Temporary Scrum Master')) return;
 
     io.to(roomId).emit('sessionEnded');
     rooms.delete(roomId);
@@ -313,23 +384,80 @@ io.on('connection', (socket) => {
           const user = room.users[userIndex];
           console.log(`User ${user.name} disconnected from room ${roomId}`);
 
-          // Remove user from room
-          room.users.splice(userIndex, 1);
+          // Mark user as disconnected but don't remove immediately
+          user.isConnected = false;
+          user.disconnectedAt = Date.now();
 
-          // If room is empty, remove it
-          if (room.users.length === 0) {
-            rooms.delete(roomId);
-            console.log(`Room ${roomId} removed (empty)`);
-          } else {
-            // If Scrum Master left, promote first user to Scrum Master
-            if (user.role === 'Scrum Master' && room.users.length > 0) {
-              room.users[0].role = 'Scrum Master';
-              console.log(`User ${room.users[0].name} promoted to Scrum Master in room ${roomId}`);
+          // If disconnected user is Scrum Master, promote temporary SM
+          if (user.role === 'Scrum Master') {
+            // Find the oldest connected participant to promote
+            const connectedUsers = room.users.filter(u => u.isConnected && u.id !== userId);
+            if (connectedUsers.length > 0) {
+              // Mark original SM as temporarily displaced
+              user.role = 'Displaced Scrum Master';
+              
+              // Promote first connected user to temporary SM
+              connectedUsers[0].role = 'Temporary Scrum Master';
+              
+              console.log(`User ${connectedUsers[0].name} promoted to Temporary Scrum Master in room ${roomId} (original SM disconnected)`);
+              
+              // Send notification about SM change
+              io.to(roomId).emit('scrumMasterChanged', {
+                newScrumMaster: connectedUsers[0],
+                reason: 'original_disconnected',
+                originalScrumMaster: user
+              });
             }
-
-            // Broadcast room update
-            io.to(roomId).emit('roomUpdated', room);
           }
+
+          // Broadcast room update to show user as disconnected
+          io.to(roomId).emit('roomUpdated', room);
+
+          // Set timeout to remove user after 30 seconds if they don't rejoin
+          setTimeout(() => {
+            if (rooms.has(roomId)) {
+              const currentRoom = rooms.get(roomId);
+              const currentUserIndex = currentRoom.users.findIndex((u) => u.id === userId);
+              
+              if (currentUserIndex !== -1) {
+                const currentUser = currentRoom.users[currentUserIndex];
+                
+                // Only remove if still disconnected and enough time has passed
+                if (!currentUser.isConnected && (Date.now() - currentUser.disconnectedAt) >= 30000) {
+                  console.log(`Removing user ${currentUser.name} from room ${roomId} after timeout`);
+                  
+                  // Remove user from room
+                  currentRoom.users.splice(currentUserIndex, 1);
+
+                  // If room is empty, remove it
+                  if (currentRoom.users.length === 0) {
+                    rooms.delete(roomId);
+                    console.log(`Room ${roomId} removed (empty)`);
+                  } else {
+                    // If any type of Scrum Master left permanently, promote first user to Scrum Master
+                    if ((currentUser.role === 'Scrum Master' || currentUser.role === 'Displaced Scrum Master' || currentUser.role === 'Temporary Scrum Master') && currentRoom.users.length > 0) {
+                      // Find first connected user to promote
+                      const connectedUser = currentRoom.users.find(u => u.isConnected);
+                      if (connectedUser) {
+                        connectedUser.role = 'Scrum Master';
+                        console.log(`User ${connectedUser.name} promoted to Scrum Master in room ${roomId} (previous SM left permanently)`);
+                        
+                        // Send notification about permanent SM change
+                        io.to(roomId).emit('scrumMasterChanged', {
+                          newScrumMaster: connectedUser,
+                          reason: 'permanent_promotion',
+                          removedUser: currentUser
+                        });
+                      }
+                    }
+
+                    // Broadcast room update
+                    io.to(roomId).emit('roomUpdated', currentRoom);
+                  }
+                }
+              }
+            }
+          }, 30000); // 30 seconds timeout
         }
       }
 
@@ -340,13 +468,13 @@ io.on('connection', (socket) => {
   });
 });
 
-// Basic route for testing
-app.get('/', (req, res) => {
-  res.send('Planning Poker Server is running');
+// Handle React Router (SPA) - serve index.html for all non-API routes
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 
 // Start server
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });

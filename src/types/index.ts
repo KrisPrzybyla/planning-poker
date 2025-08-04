@@ -1,8 +1,10 @@
 export interface User {
   id: string;
   name: string;
-  role: 'Scrum Master' | 'Participant';
+  role: 'Scrum Master' | 'Participant' | 'Temporary Scrum Master' | 'Displaced Scrum Master';
   roomId: string;
+  isConnected?: boolean;
+  disconnectedAt?: number;
 }
 
 export interface Room {

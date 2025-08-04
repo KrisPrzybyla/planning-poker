@@ -1,15 +1,11 @@
-import { useRef } from 'react';
 import {
   Box,
   Text,
-  Button,
-  Flex,
   useToast,
   useClipboard,
-  Tooltip,
   IconButton,
+  HStack,
 } from '@chakra-ui/react';
-import { formatRoomCode } from '../utils/votingUtils';
 
 interface RoomInfoProps {
   roomId: string;
@@ -32,22 +28,37 @@ const RoomInfo = ({ roomId }: RoomInfoProps) => {
   };
 
   return (
-    <Box p={4} borderWidth="1px" borderRadius="lg" bg="gray.50">
-      <Flex direction="column" align="center" justify="center">
-        <Text fontSize="sm" color="gray.600" mb={1}>
-          Room Code
-        </Text>
-        <Text fontSize="2xl" fontWeight="bold" letterSpacing="wider" mb={2}>
-          {formatRoomCode(roomId)}
-        </Text>
-        <Flex mt={2} justify="center">
-          <Tooltip label="Copy Room Link">
-            <Button size="sm" onClick={handleCopyLink} colorScheme="blue">
-              {hasUrlCopied ? 'Copied!' : 'Copy Link'}
-            </Button>
-          </Tooltip>
-        </Flex>
-      </Flex>
+    <Box 
+      p={3} 
+      borderWidth="1px" 
+      borderRadius="lg" 
+      bg="gray.50"
+      maxW="400px"
+    >
+      <HStack spacing={2} align="center">
+        <Box flex="1" minW="0">
+          <Text fontSize="xs" color="gray.600" mb={1}>
+            Room Link
+          </Text>
+          <Text 
+            fontSize="sm" 
+            fontFamily="mono"
+            color="gray.800"
+            isTruncated
+            title={roomUrl}
+          >
+            {roomUrl}
+          </Text>
+        </Box>
+        <IconButton
+          aria-label="Copy room link"
+          icon={<Text fontSize="lg">📋</Text>}
+          size="sm"
+          onClick={handleCopyLink}
+          colorScheme={hasUrlCopied ? "green" : "blue"}
+          variant={hasUrlCopied ? "solid" : "outline"}
+        />
+      </HStack>
     </Box>
   );
 };

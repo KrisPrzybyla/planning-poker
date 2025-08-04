@@ -53,15 +53,26 @@ const ParticipantsList = ({
                   >
                     {user.name}
                   </Text>
-                  {user.role === 'Scrum Master' && (
+                  {(user.role === 'Scrum Master' || user.role === 'Temporary Scrum Master') && (
                     <Badge 
-                      colorScheme="purple" 
+                      colorScheme={user.role === 'Scrum Master' ? 'purple' : 'orange'} 
                       variant="solid" 
                       fontSize="xs"
                       px={2}
                       py={1}
                     >
-                      SM
+                      {user.role === 'Scrum Master' ? 'SM' : 'TEMP SM'}
+                    </Badge>
+                  )}
+                  {!user.isConnected && (
+                    <Badge 
+                      colorScheme="red" 
+                      variant="outline" 
+                      fontSize="xs"
+                      px={2}
+                      py={1}
+                    >
+                      OFFLINE
                     </Badge>
                   )}
                 </Flex>

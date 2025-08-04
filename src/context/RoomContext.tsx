@@ -1,6 +1,6 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, ReactNode, useRef } from 'react';
 import { io, Socket } from 'socket.io-client';
-import { Room, User, Story, Vote, VotingStats } from '../types';
+import { Room, User, Story, VotingStats } from '../types';
 import { calculateVotingStats } from '../utils/votingUtils';
 
 interface RoomContextType {
@@ -36,14 +36,40 @@ interface RoomProviderProps {
 export const RoomProvider = ({ children }: RoomProviderProps) => {
   const [socket, setSocket] = useState<Socket | null>(null);
   const [room, setRoom] = useState<Room | null>(null);
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [currentUser, setCurrentUser] = useState<User | null>(() => {
+    // Try to restore user from localStorage
+    const savedUser = localStorage.getItem('planningPoker_currentUser');
+    return savedUser ? JSON.parse(savedUser) : null;
+  });
   const [isConnected, setIsConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [votingStats, setVotingStats] = useState<VotingStats | null>(null);
 
+  // Use refs to access current values in event handlers
+  const currentUserRef = useRef<User | null>(null);
+  const roomRef = useRef<Room | null>(null);
+
+  // Update refs when state changes
+  useEffect(() => {
+    currentUserRef.current = currentUser;
+  }, [currentUser]);
+
+  useEffect(() => {
+    roomRef.current = room;
+  }, [room]);
+
+  // Save current user to localStorage whenever it changes
+  useEffect(() => {
+    if (currentUser) {
+      localStorage.setItem('planningPoker_currentUser', JSON.stringify(currentUser));
+    } else {
+      localStorage.removeItem('planningPoker_currentUser');
+    }
+  }, [currentUser]);
+
   useEffect(() => {
     // Initialize socket connection
-    const socketInstance = io('http://localhost:3001');
+    const socketInstance = io('http://localhost:3000');
     setSocket(socketInstance);
 
     socketInstance.on('connect', () => {
@@ -78,6 +104,71 @@ export const RoomProvider = ({ children }: RoomProviderProps) => {
       
       // Redirect to home page
       window.location.href = '/';
+    });
+
+    socketInstance.on('scrumMasterChanged', (data: { newScrumMaster: User; reason: string; originalScrumMaster?: User; previousTempScrumMaster?: User; removedUser?: User }) => {
+      // Update current user if they are affected by the change
+      const currentUserValue = currentUserRef.current;
+      if (currentUserValue) {
+        if (currentUserValue.id === data.newScrumMaster.id) {
+          setCurrentUser(data.newScrumMaster);
+        } else if (data.previousTempScrumMaster && currentUserValue.id === data.previousTempScrumMaster.id) {
+          setCurrentUser({ ...currentUserValue, role: 'Participant' });
+        } else if (data.originalScrumMaster && currentUserValue.id === data.originalScrumMaster.id) {
+          setCurrentUser({ ...currentUserValue, role: data.originalScrumMaster.role });
+        }
+      }
+      
+      // Update room state to reflect role changes
+      const roomValue = roomRef.current;
+      if (roomValue) {
+        const updatedRoom = { ...roomValue };
+        updatedRoom.users = updatedRoom.users.map(user => {
+          if (user.id === data.newScrumMaster.id) {
+            return { ...user, role: data.newScrumMaster.role };
+          } else if (data.previousTempScrumMaster && user.id === data.previousTempScrumMaster.id) {
+            return { ...user, role: 'Participant' };
+          } else if (data.originalScrumMaster && user.id === data.originalScrumMaster.id) {
+            return { ...user, role: data.originalScrumMaster.role };
+          }
+          return user;
+        });
+        setRoom(updatedRoom);
+      }
+      
+      // Show notification based on reason
+      const messages = {
+        'original_disconnected': `${data.newScrumMaster.name} is now the temporary Scrum Master (original SM disconnected)`,
+        'original_reconnected': `${data.newScrumMaster.name} has returned as Scrum Master`,
+        'permanent_promotion': `${data.newScrumMaster.name} is now the Scrum Master`
+      };
+      
+      // You can add toast notification here if needed
+      console.log(messages[data.reason as keyof typeof messages] || 'Scrum Master changed');
+    });
+
+    // Auto-rejoin room if user data exists and we're on a room page
+    socketInstance.on('connect', () => {
+      const savedUser = localStorage.getItem('planningPoker_currentUser');
+      const currentPath = window.location.pathname;
+      const roomMatch = currentPath.match(/^\/room\/(.+)$/);
+      
+      if (savedUser && roomMatch) {
+        const user = JSON.parse(savedUser);
+        const roomId = roomMatch[1];
+        
+        // Try to rejoin the room
+        socketInstance.emit('rejoinRoom', { roomId, userId: user.id }, (response: { success: boolean; user?: User; error?: string }) => {
+          if (response.success && response.user) {
+            setCurrentUser(response.user);
+          } else {
+            // If rejoin fails, clear saved data and redirect to join page
+            localStorage.removeItem('planningPoker_currentUser');
+            setCurrentUser(null);
+            window.location.href = `/join/${roomId}`;
+          }
+        });
+      }
     });
 
     return () => {
@@ -124,7 +215,7 @@ export const RoomProvider = ({ children }: RoomProviderProps) => {
   };
 
   const startVoting = (story: Omit<Story, 'id' | 'votes'>) => {
-    if (!socket || !room || !currentUser || currentUser.role !== 'Scrum Master') {
+    if (!socket || !room || !currentUser || (currentUser.role !== 'Scrum Master' && currentUser.role !== 'Temporary Scrum Master')) {
       setError('Only Scrum Master can start voting');
       return;
     }
@@ -142,7 +233,7 @@ export const RoomProvider = ({ children }: RoomProviderProps) => {
   };
 
   const revealResults = () => {
-    if (!socket || !room || !currentUser || currentUser.role !== 'Scrum Master') {
+    if (!socket || !room || !currentUser || (currentUser.role !== 'Scrum Master' && currentUser.role !== 'Temporary Scrum Master')) {
       setError('Only Scrum Master can reveal results');
       return;
     }
@@ -151,7 +242,7 @@ export const RoomProvider = ({ children }: RoomProviderProps) => {
   };
 
   const resetVoting = () => {
-    if (!socket || !room || !currentUser || currentUser.role !== 'Scrum Master') {
+    if (!socket || !room || !currentUser || (currentUser.role !== 'Scrum Master' && currentUser.role !== 'Temporary Scrum Master')) {
       setError('Only Scrum Master can reset voting');
       return;
     }
@@ -160,7 +251,7 @@ export const RoomProvider = ({ children }: RoomProviderProps) => {
   };
 
   const endSession = () => {
-    if (!socket || !room || !currentUser || currentUser.role !== 'Scrum Master') {
+    if (!socket || !room || !currentUser || (currentUser.role !== 'Scrum Master' && currentUser.role !== 'Temporary Scrum Master')) {
       setError('Only Scrum Master can end session');
       return;
     }

@@ -12,7 +12,7 @@ import {
   useToast,
 } from '@chakra-ui/react';
 import { useRoom } from '../context/RoomContext';
-import { formatRoomCode } from '../utils/votingUtils';
+
 
 interface JoinRoomFormProps {
   initialRoomId?: string;
@@ -98,6 +98,7 @@ const JoinRoomForm = ({ initialRoomId }: JoinRoomFormProps) => {
                 placeholder="Enter 6-digit room code"
                 size="lg"
                 textTransform="uppercase"
+                autoFocus={!roomId}
               />
             </FormControl>
 
@@ -108,6 +109,7 @@ const JoinRoomForm = ({ initialRoomId }: JoinRoomFormProps) => {
                 onChange={(e) => setUserName(e.target.value)}
                 placeholder="Enter your name"
                 size="lg"
+                autoFocus={!!roomId}
               />
             </FormControl>
 
