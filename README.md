@@ -104,6 +104,55 @@ docker-compose down
 
 Po uruchomieniu aplikacja będzie dostępna pod adresem: `http://localhost` (port 80)
 
+## Wdrożenie na serwerze (EC2, VPS, Cloud)
+
+### Wymagania serwera
+
+- Docker i Docker Compose
+- Otwarte porty: 80 (HTTP) i opcjonalnie 443 (HTTPS)
+
+### Kroki wdrożenia
+
+1. **Sklonuj repozytorium na serwer:**
+```bash
+git clone <repository-url>
+cd trae_poker
+```
+
+2. **Uruchom aplikację:**
+```bash
+# Opcja 1: Docker Compose (zalecane)
+npm run docker:up
+
+# Opcja 2: Docker ręcznie
+npm run docker:build
+npm run docker:run
+```
+
+3. **Sprawdź status:**
+```bash
+docker ps
+```
+
+4. **Aplikacja będzie dostępna pod adresem IP serwera:**
+```
+http://YOUR_SERVER_IP
+```
+
+### Ważne uwagi dla wdrożenia
+
+- **Socket.IO**: Aplikacja automatycznie wykrywa adres serwera (nie używa localhost)
+- **Porty**: Aplikacja mapuje port 80 (zewnętrzny) na port 3000 (wewnętrzny kontenera)
+- **Restart**: Kontener automatycznie restartuje się po restarcie serwera
+- **Firewall**: Upewnij się, że port 80 jest otwarty w security groups (EC2) lub firewall
+
+### Rozwiązywanie problemów
+
+Jeśli Socket.IO nie działa:
+1. Sprawdź czy port 80 jest otwarty
+2. Sprawdź logi kontenera: `docker logs planning-poker-app`
+3. Sprawdź czy kontener działa: `docker ps`
+
 ## Struktura projektu
 
 - `/src` - kod źródłowy aplikacji klienckiej
