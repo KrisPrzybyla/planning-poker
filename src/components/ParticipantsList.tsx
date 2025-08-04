@@ -62,6 +62,21 @@ const ParticipantsList = ({
               <Flex align="center" justify="space-between" w="100%">
                 <Flex align="center" flex="1" minW="0">
                   <Avatar size="sm" name={user.name} mr={3} />
+                  {(currentUser?.role === 'Scrum Master' || currentUser?.role === 'Temporary Scrum Master') && 
+                    currentUser?.id !== user.id && 
+                    user.role !== 'Scrum Master' && 
+                    user.role !== 'Temporary Scrum Master' && (
+                     <IconButton
+                       aria-label="Remove participant"
+                       icon={<CloseIcon />}
+                       size="sm"
+                       colorScheme="red"
+                       variant="ghost"
+                       onClick={() => handleRemoveUser(user)}
+                       title={`Usuń ${user.name} z pokoju`}
+                       mr={2}
+                     />
+                   )}
                   <Text 
                     fontWeight="medium" 
                     fontSize="18px"
@@ -119,20 +134,6 @@ const ParticipantsList = ({
                       {voteValue}
                     </Badge>
                   )}
-                  {(currentUser?.role === 'Scrum Master' || currentUser?.role === 'Temporary Scrum Master') && 
-                    currentUser?.id !== user.id && 
-                    user.role !== 'Scrum Master' && 
-                    user.role !== 'Temporary Scrum Master' && (
-                     <IconButton
-                       aria-label="Remove participant"
-                       icon={<CloseIcon />}
-                       size="sm"
-                       colorScheme="red"
-                       variant="ghost"
-                       onClick={() => handleRemoveUser(user)}
-                       title={`Usuń ${user.name} z pokoju`}
-                     />
-                   )}
                 </Flex>
               </Flex>
             </ListItem>
