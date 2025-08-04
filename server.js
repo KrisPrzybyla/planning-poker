@@ -449,7 +449,7 @@ io.on('connection', (socket) => {
           user.isConnected = false;
           user.disconnectedAt = Date.now();
 
-          // If disconnected user is Scrum Master, promote temporary SM
+          // If disconnected user is Scrum Master, promote temporary SM after 2 seconds
           if (user.role === 'Scrum Master') {
             // Find the oldest connected participant to promote
             const connectedUsers = room.users.filter(u => u.isConnected && u.id !== userId);
@@ -457,17 +457,36 @@ io.on('connection', (socket) => {
               // Mark original SM as temporarily displaced
               user.role = 'Displaced Scrum Master';
               
-              // Promote first connected user to temporary SM
-              connectedUsers[0].role = 'Temporary Scrum Master';
-              
-              console.log(`User ${connectedUsers[0].name} promoted to Temporary Scrum Master in room ${roomId} (original SM disconnected)`);
-              
-              // Send notification about SM change
-              io.to(roomId).emit('scrumMasterChanged', {
-                newScrumMaster: connectedUsers[0],
-                reason: 'original_disconnected',
-                originalScrumMaster: user
-              });
+              // Wait 2 seconds before promoting temporary SM
+              setTimeout(() => {
+                // Check if room still exists and user is still disconnected
+                if (rooms.has(roomId)) {
+                  const currentRoom = rooms.get(roomId);
+                  const currentUser = currentRoom.users.find(u => u.id === userId);
+                  
+                  // Only promote if original SM is still disconnected
+                  if (currentUser && !currentUser.isConnected && currentUser.role === 'Displaced Scrum Master') {
+                    // Find first connected user to promote (re-check in case users changed)
+                    const currentConnectedUsers = currentRoom.users.filter(u => u.isConnected && u.id !== userId);
+                    if (currentConnectedUsers.length > 0) {
+                      // Promote first connected user to temporary SM
+                      currentConnectedUsers[0].role = 'Temporary Scrum Master';
+                      
+                      console.log(`User ${currentConnectedUsers[0].name} promoted to Temporary Scrum Master in room ${roomId} (original SM disconnected for 2s)`);
+                      
+                      // Send notification about SM change
+                      io.to(roomId).emit('scrumMasterChanged', {
+                        newScrumMaster: currentConnectedUsers[0],
+                        reason: 'original_disconnected',
+                        originalScrumMaster: currentUser
+                      });
+                      
+                      // Broadcast room update
+                      io.to(roomId).emit('roomUpdated', currentRoom);
+                    }
+                  }
+                }
+              }, 2000); // 2 seconds delay
             }
           }
 
