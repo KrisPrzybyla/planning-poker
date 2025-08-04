@@ -68,8 +68,8 @@ export const RoomProvider = ({ children }: RoomProviderProps) => {
   }, [currentUser]);
 
   useEffect(() => {
-    // Initialize socket connection
-    const socketInstance = io('http://localhost');
+    // Initialize socket connection - use current host for production compatibility
+    const socketInstance = io();
     setSocket(socketInstance);
 
     socketInstance.on('connect', () => {
