@@ -76,8 +76,11 @@ npm run docker:down
 # Budowanie obrazu Docker
 npm run docker:build
 
-# Uruchomienie kontenera
+# Uruchomienie kontenera w tle (z automatycznym restartem)
 npm run docker:run
+
+# Zatrzymanie kontenera
+npm run docker:stop
 ```
 
 ### Ręczne polecenia Docker
@@ -86,8 +89,11 @@ npm run docker:run
 # Budowanie obrazu
 docker build -t planning-poker .
 
-# Uruchomienie kontenera
-docker run -p 3000:3000 planning-poker
+# Uruchomienie kontenera w tle z automatycznym restartem
+docker run -d --name planning-poker-app --restart unless-stopped -p 3000:3000 planning-poker
+
+# Zatrzymanie kontenera
+docker stop planning-poker-app && docker rm planning-poker-app
 
 # Uruchomienie z docker-compose
 docker-compose up -d

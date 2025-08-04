@@ -11,7 +11,8 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "docker:build": "docker build -t planning-poker .",
-    "docker:run": "docker run -p 80:3000 planning-poker",
+    "docker:run": "docker run -d --name planning-poker-app --restart unless-stopped -p 3000:3000 planning-poker",
+    "docker:stop": "docker stop planning-poker-app && docker rm planning-poker-app",
     "docker:up": "docker-compose up -d",
     "docker:down": "docker-compose down"
   },
