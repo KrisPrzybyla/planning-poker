@@ -69,7 +69,7 @@ export const RoomProvider = ({ children }: RoomProviderProps) => {
 
   useEffect(() => {
     // Initialize socket connection
-    const socketInstance = io('http://localhost:3000');
+    const socketInstance = io('http://localhost');
     setSocket(socketInstance);
 
     socketInstance.on('connect', () => {

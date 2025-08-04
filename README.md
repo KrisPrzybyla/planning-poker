@@ -90,7 +90,7 @@ npm run docker:stop
 docker build -t planning-poker .
 
 # Uruchomienie kontenera w tle z automatycznym restartem
-docker run -d --name planning-poker-app --restart unless-stopped -p 3000:3000 planning-poker
+docker run -d --name planning-poker-app --restart unless-stopped -p 80:3000 planning-poker
 
 # Zatrzymanie kontenera
 docker stop planning-poker-app && docker rm planning-poker-app
@@ -102,7 +102,7 @@ docker-compose up -d
 docker-compose down
 ```
 
-Po uruchomieniu aplikacja będzie dostępna pod adresem: `http://localhost:3000`
+Po uruchomieniu aplikacja będzie dostępna pod adresem: `http://localhost` (port 80)
 
 ## Struktura projektu
 
