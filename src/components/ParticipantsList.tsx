@@ -64,34 +64,15 @@ const ParticipantsList = ({
                 justify="space-between" 
                 w="100%"
                 className="user-item"
+                position="relative"
                 _hover={{
                   '& .remove-button': {
-                    opacity: 1,
-                    visibility: 'visible'
+                    display: 'flex'
                   }
                 }}
               >
                 <Flex align="center" flex="1" minW="0">
                   <Avatar size="sm" name={user.name} mr={3} />
-                  {(currentUser?.role === 'Scrum Master' || currentUser?.role === 'Temporary Scrum Master') && 
-                    currentUser?.id !== user.id && 
-                    user.role !== 'Scrum Master' && 
-                    user.role !== 'Temporary Scrum Master' && (
-                     <IconButton
-                       aria-label="Remove participant"
-                       icon={<CloseIcon />}
-                       size="sm"
-                       colorScheme="red"
-                       variant="ghost"
-                       onClick={() => handleRemoveUser(user)}
-                       title={`Usuń ${user.name} z pokoju`}
-                       mr={2}
-                       className="remove-button"
-                       opacity={0}
-                       visibility="hidden"
-                       transition="all 0.2s ease-in-out"
-                     />
-                   )}
                   <Text 
                     fontWeight="medium" 
                     fontSize="18px"
@@ -150,6 +131,28 @@ const ParticipantsList = ({
                     </Badge>
                   )}
                 </Flex>
+                {(currentUser?.role === 'Scrum Master' || currentUser?.role === 'Temporary Scrum Master') && 
+                  currentUser?.id !== user.id && 
+                  user.role !== 'Scrum Master' && 
+                  user.role !== 'Temporary Scrum Master' && (
+                   <IconButton
+                     aria-label="Remove participant"
+                     icon={<CloseIcon />}
+                     size="sm"
+                     colorScheme="red"
+                     variant="ghost"
+                     onClick={() => handleRemoveUser(user)}
+                     title={`Usuń ${user.name} z pokoju`}
+                     className="remove-button"
+                     position="absolute"
+                     left="44px"
+                     top="50%"
+                     transform="translateY(-50%)"
+                     display="none"
+                     transition="all 0.2s ease-in-out"
+                     zIndex={1}
+                   />
+                 )}
               </Flex>
             </ListItem>
           );
