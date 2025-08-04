@@ -1,0 +1,10 @@
+{
+  "*.{js,jsx,ts,tsx}": [
+    "eslint --fix",
+    "npm run test:react -- --passWithNoTests",
+    "npm run test:backend -- --passWithNoTests"
+  ],
+  "*.{json,md}": [
+    "prettier --write"
+  ]
+}

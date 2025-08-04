@@ -1,0 +1,14 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+echo "🧪 Uruchamiam testy przed commitem..."
+
+# Uruchom testy React
+echo "📱 Testowanie komponentów React..."
+npm run test:react
+
+# Uruchom testy backend
+echo "🔧 Testowanie backend..."
+npm run test:backend
+
+echo "✅ Wszystkie testy przeszły pomyślnie! Commit może być wykonany."
