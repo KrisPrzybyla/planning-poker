@@ -59,7 +59,18 @@ const ParticipantsList = ({
           const { hasVoted, voteValue } = getUserVoteStatus(user.id);
           return (
             <ListItem key={user.id}>
-              <Flex align="center" justify="space-between" w="100%">
+              <Flex 
+                align="center" 
+                justify="space-between" 
+                w="100%"
+                className="user-item"
+                _hover={{
+                  '& .remove-button': {
+                    opacity: 1,
+                    visibility: 'visible'
+                  }
+                }}
+              >
                 <Flex align="center" flex="1" minW="0">
                   <Avatar size="sm" name={user.name} mr={3} />
                   {(currentUser?.role === 'Scrum Master' || currentUser?.role === 'Temporary Scrum Master') && 
@@ -75,6 +86,10 @@ const ParticipantsList = ({
                        onClick={() => handleRemoveUser(user)}
                        title={`Usuń ${user.name} z pokoju`}
                        mr={2}
+                       className="remove-button"
+                       opacity={0}
+                       visibility="hidden"
+                       transition="all 0.2s ease-in-out"
                      />
                    )}
                   <Text 
