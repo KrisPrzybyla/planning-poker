@@ -369,6 +369,67 @@ io.on('connection', (socket) => {
     console.log(`Session ended for room ${roomId}`);
   });
 
+  // Remove user from room (only Scrum Master can do this)
+  socket.on('removeUser', async ({ roomId, userIdToRemove }, callback) => {
+    try {
+      // Check if room exists
+      if (!rooms.has(roomId)) {
+        callback({ success: false, error: 'Room not found' });
+        return;
+      }
+
+      const room = rooms.get(roomId);
+      const requestingUserId = socket.data.userId;
+
+      // Check if requesting user is Scrum Master or Temporary Scrum Master
+      const requestingUser = room.users.find((u) => u.id === requestingUserId);
+      if (!requestingUser || (requestingUser.role !== 'Scrum Master' && requestingUser.role !== 'Temporary Scrum Master')) {
+        callback({ success: false, error: 'Only Scrum Master can remove users' });
+        return;
+      }
+
+      // Find user to remove
+      const userToRemoveIndex = room.users.findIndex((u) => u.id === userIdToRemove);
+      if (userToRemoveIndex === -1) {
+        callback({ success: false, error: 'User not found' });
+        return;
+      }
+
+      const userToRemove = room.users[userToRemoveIndex];
+
+      // Prevent removing Scrum Master (including self)
+      if (userToRemove.role === 'Scrum Master' || userToRemove.role === 'Temporary Scrum Master') {
+        callback({ success: false, error: 'Cannot remove Scrum Master' });
+        return;
+      }
+
+      // Remove user from room
+      room.users.splice(userToRemoveIndex, 1);
+
+      // Remove user's votes if any
+      if (room.currentStory) {
+        room.currentStory.votes = room.currentStory.votes.filter(vote => vote.userId !== userIdToRemove);
+      }
+
+      // Notify the removed user (if connected)
+      const removedUserSockets = await io.in(roomId).fetchSockets();
+      const removedUserSocket = removedUserSockets.find(s => s.data.userId === userIdToRemove);
+      if (removedUserSocket) {
+        removedUserSocket.emit('userRemoved', { reason: 'Removed by Scrum Master' });
+        removedUserSocket.leave(roomId);
+      }
+
+      // Broadcast room update to remaining users
+      io.to(roomId).emit('roomUpdated', room);
+
+      callback({ success: true });
+      console.log(`User ${userToRemove.name} removed from room ${roomId} by ${requestingUser.name}`);
+    } catch (error) {
+      console.error('Error removing user:', error);
+      callback({ success: false, error: 'Failed to remove user' });
+    }
+  });
+
   // Handle disconnection
   socket.on('disconnect', () => {
     try {

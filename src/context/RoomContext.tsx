@@ -17,6 +17,7 @@ interface RoomContextType {
   revealResults: () => void;
   resetVoting: () => void;
   endSession: () => void;
+  removeUser: (userIdToRemove: string) => Promise<void>;
 }
 
 const RoomContext = createContext<RoomContextType | undefined>(undefined);
@@ -147,6 +148,19 @@ export const RoomProvider = ({ children }: RoomProviderProps) => {
       console.log(messages[data.reason as keyof typeof messages] || 'Scrum Master changed');
     });
 
+    socketInstance.on('userRemoved', (data: { reason: string }) => {
+      // Clear room data and redirect to home page
+      setRoom(null);
+      setCurrentUser(null);
+      setVotingStats(null);
+      
+      // Show alert to user
+      alert(`Zostałeś usunięty z pokoju: ${data.reason}`);
+      
+      // Redirect to home page
+      window.location.href = '/';
+    });
+
     // Auto-rejoin room if user data exists and we're on a room page
     socketInstance.on('connect', () => {
       const savedUser = localStorage.getItem('planningPoker_currentUser');
@@ -259,6 +273,25 @@ export const RoomProvider = ({ children }: RoomProviderProps) => {
     socket.emit('endSession', { roomId: room.id });
   };
 
+  const removeUser = async (userIdToRemove: string): Promise<void> => {
+    return new Promise((resolve, reject) => {
+      if (!socket || !room || !currentUser || (currentUser.role !== 'Scrum Master' && currentUser.role !== 'Temporary Scrum Master')) {
+        setError('Only Scrum Master can remove users');
+        reject('Only Scrum Master can remove users');
+        return;
+      }
+
+      socket.emit('removeUser', { roomId: room.id, userIdToRemove }, (response: { success: boolean; error?: string }) => {
+        if (response.success) {
+          resolve();
+        } else {
+          setError(response.error || 'Failed to remove user');
+          reject(response.error || 'Failed to remove user');
+        }
+      });
+    });
+  };
+
   const value = {
     socket,
     room,
@@ -273,6 +306,7 @@ export const RoomProvider = ({ children }: RoomProviderProps) => {
     revealResults,
     resetVoting,
     endSession,
+    removeUser,
   };
 
   return <RoomContext.Provider value={value}>{children}</RoomContext.Provider>;

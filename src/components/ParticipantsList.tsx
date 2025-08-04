@@ -7,8 +7,11 @@ import {
   Badge,
   Avatar,
   Heading,
+  IconButton,
 } from '@chakra-ui/react';
+import { CloseIcon } from '@chakra-ui/icons';
 import { User, Vote } from '../types';
+import { useRoom } from '../context/RoomContext';
 
 interface ParticipantsListProps {
   users: User[];
@@ -23,6 +26,20 @@ const ParticipantsList = ({
   isVotingActive,
   isResultsVisible,
 }: ParticipantsListProps) => {
+  const { currentUser, removeUser } = useRoom();
+
+  const handleRemoveUser = async (userToRemove: User) => {
+    const confirmed = window.confirm(`Czy na pewno chcesz usunąć użytkownika "${userToRemove.name}" z pokoju?`);
+    if (!confirmed) return;
+
+    try {
+      await removeUser(userToRemove.id);
+    } catch (error) {
+      console.error('Failed to remove user:', error);
+      alert('Nie udało się usunąć użytkownika. Spróbuj ponownie.');
+    }
+  };
+
   // Get voting status for each user
   const getUserVoteStatus = (userId: string) => {
     const userVote = votes.find((vote) => vote.userId === userId);
@@ -102,6 +119,20 @@ const ParticipantsList = ({
                       {voteValue}
                     </Badge>
                   )}
+                  {(currentUser?.role === 'Scrum Master' || currentUser?.role === 'Temporary Scrum Master') && 
+                    currentUser?.id !== user.id && 
+                    user.role !== 'Scrum Master' && 
+                    user.role !== 'Temporary Scrum Master' && (
+                     <IconButton
+                       aria-label="Remove participant"
+                       icon={<CloseIcon />}
+                       size="sm"
+                       colorScheme="red"
+                       variant="ghost"
+                       onClick={() => handleRemoveUser(user)}
+                       title={`Usuń ${user.name} z pokoju`}
+                     />
+                   )}
                 </Flex>
               </Flex>
             </ListItem>
