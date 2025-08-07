@@ -162,6 +162,9 @@ describe('Health Check Integration Tests', () => {
         userName: 'Test User'
       };
 
+      // Remove any existing listeners
+      clientSocket.off('room-created');
+      
       clientSocket.emit('create-room', roomData);
       
       clientSocket.on('room-created', (data) => {
@@ -176,6 +179,9 @@ describe('Health Check Integration Tests', () => {
         userName: 'Test User 2'
       };
 
+      // Remove any existing listeners
+      clientSocket.off('room-joined');
+      
       clientSocket.emit('join-room', roomData);
       
       clientSocket.on('room-joined', (data) => {
@@ -191,6 +197,9 @@ describe('Health Check Integration Tests', () => {
         userName: 'Stats Test User'
       };
 
+      // Remove any existing listeners
+      clientSocket.off('room-created');
+      
       clientSocket.emit('create-room', roomData);
       
       // Wait a bit for the room to be created
