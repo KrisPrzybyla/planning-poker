@@ -1,4 +1,5 @@
 import { useToast } from '@chakra-ui/react';
+import { useCallback } from 'react';
 import { FibonacciCard as FibonacciCardType, Room, User } from '../types';
 import { TOAST_DURATIONS } from '../constants';
 
@@ -12,13 +13,13 @@ export const useVoting = ({ room, currentUser, submitVote }: UseVotingProps) => 
   const toast = useToast();
 
   // Get current user's vote if any
-  const getCurrentUserVote = () => {
+  const getCurrentUserVote = useCallback(() => {
     if (!room?.currentStory || !currentUser) return undefined;
     const userVote = room.currentStory.votes.find((vote) => vote.userId === currentUser.id);
     return userVote?.value;
-  };
+  }, [room?.currentStory, currentUser]);
 
-  const handleSelectCard = (value: FibonacciCardType) => {
+  const handleSelectCard = useCallback((value: FibonacciCardType) => {
     const currentVote = getCurrentUserVote();
     const isChangingVote = currentVote && currentVote !== value;
     
@@ -30,7 +31,7 @@ export const useVoting = ({ room, currentUser, submitVote }: UseVotingProps) => 
       duration: TOAST_DURATIONS.MEDIUM,
       isClosable: true,
     });
-  };
+  }, [getCurrentUserVote, submitVote, toast]);
 
   return {
     getCurrentUserVote,

@@ -1,4 +1,5 @@
 import { useToast } from '@chakra-ui/react';
+import { useCallback } from 'react';
 import { useRoom } from '../context/RoomContext';
 import { TOAST_DURATIONS } from '../constants';
 
@@ -6,7 +7,7 @@ export const useScrumMasterActions = () => {
   const { revealResults, resetVoting, endSession } = useRoom();
   const toast = useToast();
 
-  const handleRevealResults = () => {
+  const handleRevealResults = useCallback(() => {
     revealResults();
     toast({
       title: 'Results revealed',
@@ -14,9 +15,9 @@ export const useScrumMasterActions = () => {
       duration: TOAST_DURATIONS.SHORT,
       isClosable: true,
     });
-  };
+  }, [revealResults, toast]);
 
-  const handleResetVoting = () => {
+  const handleResetVoting = useCallback(() => {
     resetVoting();
     toast({
       title: 'Voting reset',
@@ -25,9 +26,9 @@ export const useScrumMasterActions = () => {
       duration: TOAST_DURATIONS.SHORT,
       isClosable: true,
     });
-  };
+  }, [resetVoting, toast]);
 
-  const handleEndSession = () => {
+  const handleEndSession = useCallback(() => {
     endSession();
     toast({
       title: 'Session ended',
@@ -36,9 +37,9 @@ export const useScrumMasterActions = () => {
       duration: TOAST_DURATIONS.SHORT,
       isClosable: true,
     });
-  };
+  }, [endSession, toast]);
 
-  const handleNewVoting = (isVotingActive: boolean, isResultsVisible: boolean, onOpen: () => void) => {
+  const handleNewVoting = useCallback((isVotingActive: boolean, isResultsVisible: boolean, onOpen: () => void) => {
     // If voting is active and results are not visible, show confirmation
     if (isVotingActive && !isResultsVisible) {
       const confirmed = window.confirm(
@@ -49,7 +50,7 @@ export const useScrumMasterActions = () => {
       }
     }
     onOpen();
-  };
+  }, []);
 
   return {
     handleRevealResults,

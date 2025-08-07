@@ -1,4 +1,5 @@
 import { Box, SimpleGrid, Text } from '@chakra-ui/react';
+import { memo } from 'react';
 import FibonacciCard from './FibonacciCard';
 import { FibonacciCard as FibonacciCardType } from '../types';
 import { FIBONACCI_VALUES, GRID_BREAKPOINTS } from '../constants';
@@ -44,4 +45,4 @@ const FibonacciDeck: React.FC<FibonacciDeckProps> = ({
   );
 };
 
-export default FibonacciDeck;
+export default memo(FibonacciDeck);

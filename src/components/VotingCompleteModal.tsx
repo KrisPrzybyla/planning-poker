@@ -9,6 +9,7 @@ import {
   Button,
   Text,
 } from '@chakra-ui/react';
+import { memo } from 'react';
 
 interface VotingCompleteModalProps {
   isOpen: boolean;
@@ -41,4 +42,4 @@ const VotingCompleteModal: React.FC<VotingCompleteModalProps> = ({
   );
 };
 
-export default VotingCompleteModal;
+export default memo(VotingCompleteModal);

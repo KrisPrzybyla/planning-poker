@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import {
   Flex,
   Text,
@@ -146,4 +147,4 @@ const UserItem: React.FC<UserItemProps> = ({
   );
 };
 
-export default UserItem;
+export default memo(UserItem);

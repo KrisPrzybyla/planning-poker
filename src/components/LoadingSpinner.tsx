@@ -1,4 +1,5 @@
 import { Center, Flex, Spinner, Text } from '@chakra-ui/react';
+import { memo } from 'react';
 
 interface LoadingSpinnerProps {
   message?: string;
@@ -19,4 +20,4 @@ const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
   );
 };
 
-export default LoadingSpinner;
+export default memo(LoadingSpinner);

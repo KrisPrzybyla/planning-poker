@@ -7,6 +7,7 @@ import {
   Center,
   Button,
 } from '@chakra-ui/react';
+import { memo } from 'react';
 
 interface ErrorAlertProps {
   error: string;
@@ -37,4 +38,4 @@ const ErrorAlert: React.FC<ErrorAlertProps> = ({
   );
 };
 
-export default ErrorAlert;
+export default memo(ErrorAlert);

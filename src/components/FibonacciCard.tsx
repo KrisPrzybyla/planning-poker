@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { Box, Text, Tooltip } from '@chakra-ui/react';
 import { FibonacciCard as FibonacciCardType } from '../types';
 import { CARD_TOOLTIPS, CARD_DIMENSIONS } from '../constants';
@@ -58,4 +59,4 @@ const FibonacciCard: React.FC<FibonacciCardProps> = ({
   );
 };
 
-export default FibonacciCard;
+export default memo(FibonacciCard);

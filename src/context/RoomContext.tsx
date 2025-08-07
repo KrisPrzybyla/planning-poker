@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, ReactNode, useRef } from 'react';
+import { createContext, useContext, useState, useEffect, ReactNode, useRef, useMemo, useCallback } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { Room, User, Story, VotingStats } from '../types';
 import { calculateVotingStats } from '../utils/votingUtils';
@@ -190,7 +190,7 @@ export const RoomProvider = ({ children }: RoomProviderProps) => {
     };
   }, []);
 
-  const createRoom = async (userName: string, initialStory?: Omit<Story, 'id' | 'votes'>): Promise<string> => {
+  const createRoom = useCallback(async (userName: string, initialStory?: Omit<Story, 'id' | 'votes'>): Promise<string> => {
     return new Promise((resolve, reject) => {
       if (!socket) {
         reject('Socket not connected');
@@ -207,9 +207,9 @@ export const RoomProvider = ({ children }: RoomProviderProps) => {
         }
       });
     });
-  };
+  }, [socket]);
 
-  const joinRoom = async (roomId: string, userName: string): Promise<void> => {
+  const joinRoom = useCallback(async (roomId: string, userName: string): Promise<void> => {
     return new Promise((resolve, reject) => {
       if (!socket) {
         reject('Socket not connected');
@@ -226,54 +226,54 @@ export const RoomProvider = ({ children }: RoomProviderProps) => {
         }
       });
     });
-  };
+  }, [socket]);
 
-  const startVoting = (story: Omit<Story, 'id' | 'votes'>) => {
+  const startVoting = useCallback((story: Omit<Story, 'id' | 'votes'>) => {
     if (!socket || !room || !currentUser || (currentUser.role !== 'Scrum Master' && currentUser.role !== 'Temporary Scrum Master')) {
       setError('Only Scrum Master can start voting');
       return;
     }
 
     socket.emit('startVoting', { roomId: room.id, story });
-  };
+  }, [socket, room, currentUser]);
 
-  const submitVote = (value: string) => {
+  const submitVote = useCallback((value: string) => {
     if (!socket || !room || !currentUser || !room.currentStory || !room.isVotingActive) {
       setError('Cannot submit vote at this time');
       return;
     }
 
     socket.emit('submitVote', { roomId: room.id, userId: currentUser.id, value });
-  };
+  }, [socket, room, currentUser]);
 
-  const revealResults = () => {
+  const revealResults = useCallback(() => {
     if (!socket || !room || !currentUser || (currentUser.role !== 'Scrum Master' && currentUser.role !== 'Temporary Scrum Master')) {
       setError('Only Scrum Master can reveal results');
       return;
     }
 
     socket.emit('revealResults', { roomId: room.id });
-  };
+  }, [socket, room, currentUser]);
 
-  const resetVoting = () => {
+  const resetVoting = useCallback(() => {
     if (!socket || !room || !currentUser || (currentUser.role !== 'Scrum Master' && currentUser.role !== 'Temporary Scrum Master')) {
       setError('Only Scrum Master can reset voting');
       return;
     }
 
     socket.emit('resetVoting', { roomId: room.id });
-  };
+  }, [socket, room, currentUser]);
 
-  const endSession = () => {
+  const endSession = useCallback(() => {
     if (!socket || !room || !currentUser || (currentUser.role !== 'Scrum Master' && currentUser.role !== 'Temporary Scrum Master')) {
       setError('Only Scrum Master can end session');
       return;
     }
 
     socket.emit('endSession', { roomId: room.id });
-  };
+  }, [socket, room, currentUser]);
 
-  const removeUser = async (userIdToRemove: string): Promise<void> => {
+  const removeUser = useCallback(async (userIdToRemove: string): Promise<void> => {
     return new Promise((resolve, reject) => {
       if (!socket || !room || !currentUser || (currentUser.role !== 'Scrum Master' && currentUser.role !== 'Temporary Scrum Master')) {
         setError('Only Scrum Master can remove users');
@@ -290,9 +290,9 @@ export const RoomProvider = ({ children }: RoomProviderProps) => {
         }
       });
     });
-  };
+  }, [socket, room, currentUser]);
 
-  const value = {
+  const value = useMemo(() => ({
     socket,
     room,
     currentUser,
@@ -307,7 +307,22 @@ export const RoomProvider = ({ children }: RoomProviderProps) => {
     resetVoting,
     endSession,
     removeUser,
-  };
+  }), [
+    socket,
+    room,
+    currentUser,
+    isConnected,
+    error,
+    votingStats,
+    createRoom,
+    joinRoom,
+    startVoting,
+    submitVote,
+    revealResults,
+    resetVoting,
+    endSession,
+    removeUser,
+  ]);
 
   return <RoomContext.Provider value={value}>{children}</RoomContext.Provider>;
 };
