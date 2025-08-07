@@ -40,7 +40,7 @@ const CreateRoomForm = () => {
     setIsLoading(true);
     
     try {
-      // Zawsze przekazujemy informacje o początkowym głosowaniu, aby automatycznie rozpocząć głosowanie
+      // Always pass initial voting information to automatically start voting
       const initialStory = {
         title: storyTitle.trim(),
         description: storyDescription.trim()
@@ -48,7 +48,7 @@ const CreateRoomForm = () => {
       
       const roomId = await createRoom(userName, initialStory);
       
-      // Przekierowanie do pokoju
+      // Redirect to room
       navigate(`/room/${roomId}`);
     } catch (error) {
       toast({

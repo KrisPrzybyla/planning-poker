@@ -155,7 +155,7 @@ export const RoomProvider = ({ children }: RoomProviderProps) => {
       setVotingStats(null);
       
       // Show alert to user
-      alert(`Zostałeś usunięty z pokoju: ${data.reason}`);
+      alert(`You have been removed from the room: ${data.reason}`);
       
       // Redirect to home page
       window.location.href = '/';

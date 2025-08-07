@@ -1,175 +1,175 @@
 # Planning Poker
 
-Aplikacja do szacowania zadań metodą Planning Poker w zespołach Scrum.
+A task estimation application using Planning Poker methodology for Scrum teams.
 
-## Funkcjonalności
+## Features
 
-- **Fibonacci Planning Poker** - karty z wartościami: 0, 1, 2, 3, 5, 8, 13, 21, ?, ☕
-- **Tworzenie pokojów** - unikalny 6-znakowy kod dla każdej sesji
-- **Zapraszanie uczestników** - przez kod pokoju lub bezpośredni link
-- **Real-time synchronizacja** - WebSocket dla natychmiastowych aktualizacji
-- **Role użytkowników** - Scrum Master (moderator) i Uczestnicy (członkowie zespołu)
-- **Zarządzanie sesjami** - rozpoczynanie głosowania, ujawnianie wyników, resetowanie głosów
-- **Statystyki głosowania** - średnia punktów, rozkład głosów, najczęstszy głos
+- **Fibonacci Planning Poker** - cards with values: 0, 1, 2, 3, 5, 8, 13, 21, ?, ☕
+- **Room Creation** - unique 6-character code for each session
+- **Participant Invitation** - via room code or direct link
+- **Real-time Synchronization** - WebSocket for instant updates
+- **User Roles** - Scrum Master (moderator) and Participants (team members)
+- **Session Management** - start voting, reveal results, reset votes
+- **Voting Statistics** - average points, vote distribution, most common vote
 
-## Technologie
+## Technologies
 
 - React + TypeScript
-- Chakra UI dla interfejsu użytkownika
-- Socket.IO dla komunikacji w czasie rzeczywistym
-- Express.js dla serwera backend
+- Chakra UI for user interface
+- Socket.IO for real-time communication
+- Express.js for backend server
 
-## Uruchomienie aplikacji
+## Running the Application
 
-### Wymagania
+### Requirements
 
 - Node.js
 - npm
 
-### Instalacja
+### Installation
 
 ```bash
-# Instalacja zależności
+# Install dependencies
 npm install
 ```
 
-### Uruchomienie w trybie deweloperskim
+### Development Mode
 
 ```bash
-# Uruchomienie klienta i serwera jednocześnie
+# Run client and server simultaneously
 npm run dev:all
 
-# Lub osobno:
-# Uruchomienie klienta
+# Or separately:
+# Run client
 npm run dev
 
-# Uruchomienie serwera
+# Run server
 npm run server
 ```
 
-### Budowanie produkcyjne
+### Production Build
 
 ```bash
 npm run build
 ```
 
-## Uruchomienie w Docker
+## Running with Docker
 
-### Wymagania
+### Requirements
 
 - Docker
-- Docker Compose (opcjonalnie)
+- Docker Compose (optional)
 
-### Uruchomienie z Docker Compose (zalecane)
+### Running with Docker Compose (recommended)
 
 ```bash
-# Budowanie i uruchomienie aplikacji
+# Build and run application
 npm run docker:up
 
-# Zatrzymanie aplikacji
+# Stop application
 npm run docker:down
 ```
 
-### Uruchomienie z Docker (ręcznie)
+### Running with Docker (manually)
 
 ```bash
-# Budowanie obrazu Docker
+# Build Docker image
 npm run docker:build
 
-# Uruchomienie kontenera w tle (z automatycznym restartem)
+# Run container in background (with automatic restart)
 npm run docker:run
 
-# Zatrzymanie kontenera
+# Stop container
 npm run docker:stop
 ```
 
-### Ręczne polecenia Docker
+### Manual Docker Commands
 
 ```bash
-# Budowanie obrazu
+# Build image
 docker build -t planning-poker .
 
-# Uruchomienie kontenera w tle z automatycznym restartem
+# Run container in background with automatic restart
 docker run -d --name planning-poker-app --restart unless-stopped -p 80:3000 planning-poker
 
-# Zatrzymanie kontenera
+# Stop container
 docker stop planning-poker-app && docker rm planning-poker-app
 
-# Uruchomienie z docker-compose
+# Run with docker-compose
 docker-compose up -d
 
-# Zatrzymanie
+# Stop
 docker-compose down
 ```
 
-Po uruchomieniu aplikacja będzie dostępna pod adresem: `http://localhost` (port 80)
+After running, the application will be available at: `http://localhost` (port 80)
 
-## Wdrożenie na serwerze (EC2, VPS, Cloud)
+## Server Deployment (EC2, VPS, Cloud)
 
-### Wymagania serwera
+### Server Requirements
 
-- Docker i Docker Compose
-- Otwarte porty: 80 (HTTP) i opcjonalnie 443 (HTTPS)
+- Docker and Docker Compose
+- Open ports: 80 (HTTP) and optionally 443 (HTTPS)
 
-### Kroki wdrożenia
+### Deployment Steps
 
-1. **Sklonuj repozytorium na serwer:**
+1. **Clone repository on server:**
 ```bash
 git clone <repository-url>
 cd trae_poker
 ```
 
-2. **Uruchom aplikację:**
+2. **Run application:**
 ```bash
-# Opcja 1: Docker Compose (zalecane)
+# Option 1: Docker Compose (recommended)
 npm run docker:up
 
-# Opcja 2: Docker ręcznie
+# Option 2: Docker manually
 npm run docker:build
 npm run docker:run
 ```
 
-3. **Sprawdź status:**
+3. **Check status:**
 ```bash
 docker ps
 ```
 
-4. **Aplikacja będzie dostępna pod adresem IP serwera:**
+4. **Application will be available at server IP address:**
 ```
 http://YOUR_SERVER_IP
 ```
 
-### Ważne uwagi dla wdrożenia
+### Important Deployment Notes
 
-- **Socket.IO**: Aplikacja automatycznie wykrywa adres serwera (nie używa localhost)
-- **Porty**: Aplikacja mapuje port 80 (zewnętrzny) na port 3000 (wewnętrzny kontenera)
-- **Restart**: Kontener automatycznie restartuje się po restarcie serwera
-- **Firewall**: Upewnij się, że port 80 jest otwarty w security groups (EC2) lub firewall
+- **Socket.IO**: Application automatically detects server address (doesn't use localhost)
+- **Ports**: Application maps port 80 (external) to port 3000 (internal container)
+- **Restart**: Container automatically restarts after server restart
+- **Firewall**: Make sure port 80 is open in security groups (EC2) or firewall
 
-### Rozwiązywanie problemów
+### Troubleshooting
 
-Jeśli Socket.IO nie działa:
-1. Sprawdź czy port 80 jest otwarty
-2. Sprawdź logi kontenera: `docker logs planning-poker-app`
-3. Sprawdź czy kontener działa: `docker ps`
+If Socket.IO doesn't work:
+1. Check if port 80 is open
+2. Check container logs: `docker logs planning-poker-app`
+3. Check if container is running: `docker ps`
 
-## Struktura projektu
+## Project Structure
 
-- `/src` - kod źródłowy aplikacji klienckiej
-  - `/components` - komponenty React
-  - `/context` - kontekst React dla zarządzania stanem
-  - `/hooks` - niestandardowe hooki React
-  - `/pages` - strony aplikacji
-  - `/styles` - style CSS
-  - `/types` - definicje typów TypeScript
-  - `/utils` - funkcje pomocnicze
-- `server.js` - serwer backend z obsługą WebSocket
+- `/src` - client application source code
+  - `/components` - React components
+  - `/context` - React context for state management
+  - `/hooks` - custom React hooks
+  - `/pages` - application pages
+  - `/styles` - CSS styles
+  - `/types` - TypeScript type definitions
+  - `/utils` - utility functions
+- `server.js` - backend server with WebSocket support
 
-## Użytkowanie
+## Usage
 
-1. Otwórz aplikację w przeglądarce
-2. Utwórz nowy pokój jako Scrum Master lub dołącz do istniejącego pokoju jako Uczestnik
-3. Scrum Master może dodawać nowe zadania do oszacowania
-4. Uczestnicy głosują, wybierając karty Fibonacci
-5. Scrum Master ujawnia wyniki głosowania
-6. Wyniki są analizowane i wyświetlane w formie statystyk
+1. Open application in browser
+2. Create new room as Scrum Master or join existing room as Participant
+3. Scrum Master can add new tasks for estimation
+4. Participants vote by selecting Fibonacci cards
+5. Scrum Master reveals voting results
+6. Results are analyzed and displayed as statistics

@@ -22,9 +22,6 @@ const HomePage = () => {
     <Container maxW="container.md" py={10}>
       <VStack spacing={8} align="center">
         <Box textAlign="center">
-          <Heading as="h1" size="2xl" mb={2}>
-            Planning Poker
-          </Heading>
           <Text fontSize="lg" color="gray.600">
             Estimate user stories with your team in real-time
           </Text>

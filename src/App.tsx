@@ -1,6 +1,10 @@
-import { ChakraProvider, extendTheme } from '@chakra-ui/react';
+import { ChakraProvider, extendTheme, Box } from '@chakra-ui/react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { RoomProvider } from './context/RoomContext';
+
+// Components
+import Header from './components/Header';
+import HealthIndicator from './components/HealthIndicator';
 
 // Pages
 import HomePage from './pages/HomePage';
@@ -35,12 +39,18 @@ function App() {
     <ChakraProvider theme={theme}>
       <RoomProvider>
         <Router>
-          <Routes>
-            <Route path="/" element={<HomePage />} />
-            <Route path="/room/:roomId" element={<RoomPage />} />
-            <Route path="/join/:roomId" element={<JoinPage />} />
-            <Route path="*" element={<NotFoundPage />} />
-          </Routes>
+          <Box minH="100vh" bg="gray.50">
+            <Header />
+            <HealthIndicator showDetails={true} />
+            <Box>
+              <Routes>
+                <Route path="/" element={<HomePage />} />
+                <Route path="/room/:roomId" element={<RoomPage />} />
+                <Route path="/join/:roomId" element={<JoinPage />} />
+                <Route path="*" element={<NotFoundPage />} />
+              </Routes>
+            </Box>
+          </Box>
         </Router>
       </RoomProvider>
     </ChakraProvider>

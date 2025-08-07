@@ -13,6 +13,7 @@ import {
 } from '@chakra-ui/react';
 import { useRoom } from '../context/RoomContext';
 import StoryForm from './StoryForm';
+import ConfirmationModal from './ConfirmationModal';
 
 interface ScrumMasterControlsProps {
   isVotingActive: boolean;
@@ -31,6 +32,7 @@ const ScrumMasterControls = ({
     endSession
   } = useRoom();
   const { isOpen, onOpen, onClose } = useDisclosure();
+  const { isOpen: isEndSessionOpen, onOpen: onEndSessionOpen, onClose: onEndSessionClose } = useDisclosure();
   const toast = useToast();
 
   const handleRevealResults = () => {
@@ -55,16 +57,19 @@ const ScrumMasterControls = ({
   };
 
   const handleEndSession = () => {
-    if (window.confirm('Are you sure you want to end this session?')) {
-      endSession();
-      toast({
-        title: 'Session ended',
-        description: 'The session has been terminated',
-        status: 'success',
-        duration: 2000,
-        isClosable: true,
-      });
-    }
+    onEndSessionOpen();
+  };
+
+  const handleConfirmEndSession = () => {
+    onEndSessionClose();
+    endSession();
+    toast({
+      title: 'Session ended',
+      description: 'The session has been terminated',
+      status: 'success',
+      duration: 2000,
+      isClosable: true,
+    });
   };
 
   const handleNewVoting = () => {
@@ -125,6 +130,16 @@ const ScrumMasterControls = ({
           </ModalBody>
         </ModalContent>
       </Modal>
+
+      <ConfirmationModal
+        isOpen={isEndSessionOpen}
+        onClose={onEndSessionClose}
+        onConfirm={handleConfirmEndSession}
+        title="End Session?"
+        message="Are you sure you want to end this session? This action cannot be undone."
+        confirmText="Yes, End Session"
+        cancelText="Cancel"
+      />
     </>
   );
 };

@@ -29,14 +29,14 @@ const ParticipantsList = ({
   const { currentUser, removeUser } = useRoom();
 
   const handleRemoveUser = async (userToRemove: User) => {
-    const confirmed = window.confirm(`Czy na pewno chcesz usunąć użytkownika "${userToRemove.name}" z pokoju?`);
+    const confirmed = window.confirm(`Are you sure you want to remove user "${userToRemove.name}" from the room?`);
     if (!confirmed) return;
 
     try {
       await removeUser(userToRemove.id);
     } catch (error) {
       console.error('Failed to remove user:', error);
-      alert('Nie udało się usunąć użytkownika. Spróbuj ponownie.');
+      alert('Failed to remove user. Please try again.');
     }
   };
 
@@ -142,7 +142,7 @@ const ParticipantsList = ({
                      colorScheme="red"
                      variant="ghost"
                      onClick={() => handleRemoveUser(user)}
-                     title={`Usuń ${user.name} z pokoju`}
+                     title={`Remove ${user.name} from room`}
                      className="remove-button"
                      position="absolute"
                      left="44px"

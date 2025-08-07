@@ -198,11 +198,8 @@ const RoomPage = () => {
         </ModalContent>
       </Modal>
 
-      {/* Header with title and room info */}
-      <Flex justify="space-between" align="flex-start" mb={6}>
-        <Heading as="h1" size="lg">
-          Planning Poker
-        </Heading>
+      {/* Room info */}
+      <Flex justify="flex-end" align="flex-start" mb={6}>
         <RoomInfo roomId={room.id} />
       </Flex>
 

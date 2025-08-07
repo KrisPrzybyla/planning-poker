@@ -1,83 +1,83 @@
-# Git Hooks - Automatyczne Testowanie
+# Git Hooks - Automated Testing
 
-## Opis
+## Description
 
-Projekt został skonfigurowany z automatycznymi Git hooks, które uruchamiają testy przed każdym commitem. To zapewnia, że kod w repozytorium zawsze przechodzi wszystkie testy.
+The project has been configured with automatic Git hooks that run tests before each commit. This ensures that code in the repository always passes all tests.
 
-## Konfiguracja
+## Configuration
 
 ### Husky
-- **Narzędzie**: Husky v9.1.7
-- **Plik konfiguracyjny**: `.husky/pre-commit`
-- **Funkcja**: Automatyczne uruchamianie testów przed commitem
+- **Tool**: Husky v9.1.7
+- **Configuration file**: `.husky/pre-commit`
+- **Function**: Automatic test execution before commit
 
-### Dostępne Hook'i
+### Available Hooks
 
-#### 1. Standardowy Pre-commit Hook
-**Plik**: `.husky/pre-commit`
+#### 1. Standard Pre-commit Hook
+**File**: `.husky/pre-commit`
 
-Uruchamia:
-- Wszystkie testy React (67 testów)
-- Wszystkie testy backend (8 testów)
+Runs:
+- All React tests (67 tests)
+- All backend tests (8 tests)
 
 ```bash
-# Testuje hook ręcznie
+# Test hook manually
 ./.husky/pre-commit
 ```
 
-#### 2. Lint-staged Hook (alternatywa)
-**Plik**: `.husky/pre-commit-lint-staged`
-**Konfiguracja**: `.lintstagedrc.json`
+#### 2. Lint-staged Hook (alternative)
+**File**: `.husky/pre-commit-lint-staged`
+**Configuration**: `.lintstagedrc.json`
 
-Uruchamia tylko dla zmienionych plików:
-- ESLint z automatycznymi poprawkami
-- Testy React i backend
-- Prettier dla plików JSON/MD
+Runs only for changed files:
+- ESLint with automatic fixes
+- React and backend tests
+- Prettier for JSON/MD files
 
 ```bash
-# Aby użyć lint-staged zamiast standardowego hook'a:
+# To use lint-staged instead of standard hook:
 mv .husky/pre-commit .husky/pre-commit-backup
 mv .husky/pre-commit-lint-staged .husky/pre-commit
 chmod +x .husky/pre-commit
 ```
 
-## Jak to działa
+## How it works
 
-1. **Przed commitem**: Git automatycznie uruchamia `.husky/pre-commit`
-2. **Testy**: Uruchamiane są wszystkie testy React i backend
-3. **Sukces**: Jeśli wszystkie testy przejdą ✅ - commit jest wykonywany
-4. **Błąd**: Jeśli jakiś test nie przejdzie ❌ - commit jest blokowany
+1. **Before commit**: Git automatically runs `.husky/pre-commit`
+2. **Tests**: All React and backend tests are executed
+3. **Success**: If all tests pass ✅ - commit is executed
+4. **Error**: If any test fails ❌ - commit is blocked
 
-## Korzyści
+## Benefits
 
-✅ **Jakość kodu**: Zapewnia, że tylko działający kod trafia do repozytorium
-✅ **Wczesne wykrywanie błędów**: Problemy są wykrywane przed push'em
-✅ **Oszczędność czasu**: Zapobiega problemom w CI/CD
-✅ **Dyscyplina zespołu**: Wymusza uruchamianie testów
-✅ **Stabilna gałąź główna**: main/develop zawsze ma działający kod
+✅ **Code quality**: Ensures only working code reaches the repository
+✅ **Early error detection**: Problems are caught before push
+✅ **Time savings**: Prevents CI/CD issues
+✅ **Team discipline**: Enforces running tests
+✅ **Stable main branch**: main/develop always has working code
 
-## Potencjalne wyzwania
+## Potential challenges
 
-⚠️ **Czas commita**: Commit może trwać dłużej (obecnie ~6 sekund)
-⚠️ **Frustracja deweloperów**: Może blokować szybkie commit'y
-⚠️ **Konfiguracja**: Wymaga odpowiedniej konfiguracji środowiska
+⚠️ **Commit time**: Commit may take longer (currently ~6 seconds)
+⚠️ **Developer frustration**: May block quick commits
+⚠️ **Configuration**: Requires proper environment setup
 
-## Obejście (w razie potrzeby)
+## Workaround (if needed)
 
 ```bash
-# Pomiń hook'i w wyjątkowych sytuacjach (NIE ZALECANE)
+# Skip hooks in exceptional situations (NOT RECOMMENDED)
 git commit --no-verify -m "commit message"
 ```
 
-## Status testów
+## Test status
 
-- **Testy React**: 67 testów w 5 pakietach ✅
-- **Testy Backend**: 8 testów w 1 pakiecie ✅
-- **Łącznie**: 75 testów ✅
+- **React tests**: 67 tests in 5 packages ✅
+- **Backend tests**: 8 tests in 1 package ✅
+- **Total**: 75 tests ✅
 
-## Rekomendacje
+## Recommendations
 
-1. **Używaj standardowego hook'a** dla maksymalnej pewności
-2. **Rozważ lint-staged** dla większych projektów (szybsze dla małych zmian)
-3. **Edukuj zespół** o korzyściach z automatycznego testowania
-4. **Monitoruj czas wykonania** i optymalizuj testy jeśli potrzeba
+1. **Use standard hook** for maximum confidence
+2. **Consider lint-staged** for larger projects (faster for small changes)
+3. **Educate team** about benefits of automated testing
+4. **Monitor execution time** and optimize tests if needed

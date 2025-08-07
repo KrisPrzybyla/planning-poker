@@ -11,6 +11,45 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 app.use(cors());
+app.use(express.json());
+
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+  const healthStatus = {
+    status: 'healthy',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    environment: process.env.NODE_ENV || 'development',
+    version: '1.0.0',
+    services: {
+      database: 'memory', // Since we're using in-memory storage
+      socketio: 'active',
+      express: 'active'
+    },
+    stats: {
+      activeRooms: rooms.size,
+      totalConnections: io.engine.clientsCount
+    }
+  };
+
+  res.status(200).json(healthStatus);
+});
+
+// API endpoint to get server stats
+app.get('/api/stats', (req, res) => {
+  const stats = {
+    activeRooms: rooms.size,
+    totalConnections: io.engine.clientsCount,
+    rooms: Array.from(rooms.entries()).map(([id, room]) => ({
+      id,
+      userCount: room.users.length,
+      isVotingActive: room.isVotingActive,
+      hasStory: !!room.currentStory
+    }))
+  };
+
+  res.status(200).json(stats);
+});
 
 // Serve static files from the dist directory
 app.use(express.static(path.join(__dirname, 'dist')));
@@ -554,7 +593,7 @@ app.get('*', (req, res) => {
 });
 
 // Start server
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3001;
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });

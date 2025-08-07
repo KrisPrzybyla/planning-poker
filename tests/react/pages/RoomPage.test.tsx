@@ -259,7 +259,6 @@ describe('RoomPage', () => {
     it('should render room page with all components for participant', () => {
       renderWithProviders();
 
-      expect(screen.getByText('Planning Poker')).toBeInTheDocument();
       expect(screen.getByTestId('room-info')).toBeInTheDocument();
       expect(screen.getByTestId('current-story')).toBeInTheDocument();
       expect(screen.getByTestId('fibonacci-deck')).toBeInTheDocument();

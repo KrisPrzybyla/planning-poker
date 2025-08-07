@@ -97,7 +97,6 @@ const JoinRoomForm = ({ initialRoomId }: JoinRoomFormProps) => {
                 onChange={(e) => setRoomId(e.target.value)}
                 placeholder="Enter 6-digit room code"
                 size="lg"
-                textTransform="uppercase"
                 autoFocus={!roomId}
               />
             </FormControl>
