@@ -90,6 +90,7 @@ describe('useHealthCheck', () => {
     });
 
     test('should use custom backend URL from environment', async () => {
+      // Set environment variable
       process.env.VITE_BACKEND_URL = 'http://custom-backend:8080';
 
       mockFetch.mockResolvedValueOnce({
@@ -102,9 +103,15 @@ describe('useHealthCheck', () => {
       await waitFor(() => {
         expect(mockFetch).toHaveBeenCalledWith(
           'http://custom-backend:8080/api/health',
-          expect.any(Object)
+          expect.objectContaining({
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json' }
+          })
         );
       });
+
+      // Clean up
+      delete process.env.VITE_BACKEND_URL;
     });
   });
 
