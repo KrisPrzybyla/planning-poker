@@ -1,6 +1,7 @@
 import { Box, SimpleGrid, Text } from '@chakra-ui/react';
 import FibonacciCard from './FibonacciCard';
 import { FibonacciCard as FibonacciCardType } from '../types';
+import { FIBONACCI_VALUES, GRID_BREAKPOINTS } from '../constants';
 
 interface FibonacciDeckProps {
   selectedValue?: string;
@@ -8,8 +9,6 @@ interface FibonacciDeckProps {
   isVotingActive: boolean;
   isResultsVisible: boolean;
 }
-
-const FIBONACCI_VALUES: FibonacciCardType[] = ['0', '1', '2', '3', '5', '8', '13', '21', '?', '☕'];
 
 const FibonacciDeck: React.FC<FibonacciDeckProps> = ({
   selectedValue,
@@ -29,7 +28,7 @@ const FibonacciDeck: React.FC<FibonacciDeckProps> = ({
           {selectedValue ? 'You can change your vote anytime before results are revealed' : 'Select your estimate'}
         </Text>
       )}
-      <SimpleGrid columns={{ base: 2, sm: 3, md: 5 }} spacing={4} justifyItems="center">
+      <SimpleGrid columns={GRID_BREAKPOINTS.CARDS} spacing={4} justifyItems="center">
         {FIBONACCI_VALUES.map((value) => (
           <FibonacciCard
             key={value}

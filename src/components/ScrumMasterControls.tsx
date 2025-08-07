@@ -9,11 +9,10 @@ import {
   ModalContent,
   ModalBody,
   ModalCloseButton,
-  useToast,
 } from '@chakra-ui/react';
-import { useRoom } from '../context/RoomContext';
 import StoryForm from './StoryForm';
 import ConfirmationModal from './ConfirmationModal';
+import { useScrumMasterActions } from '../hooks/useScrumMasterActions';
 
 interface ScrumMasterControlsProps {
   isVotingActive: boolean;
@@ -26,35 +25,15 @@ const ScrumMasterControls = ({
   isResultsVisible,
   hasStory,
 }: ScrumMasterControlsProps) => {
-  const { 
-    revealResults, 
-    resetVoting, 
-    endSession
-  } = useRoom();
   const { isOpen, onOpen, onClose } = useDisclosure();
   const { isOpen: isEndSessionOpen, onOpen: onEndSessionOpen, onClose: onEndSessionClose } = useDisclosure();
-  const toast = useToast();
-
-  const handleRevealResults = () => {
-    revealResults();
-    toast({
-      title: 'Results revealed',
-      status: 'info',
-      duration: 2000,
-      isClosable: true,
-    });
-  };
-
-  const handleResetVoting = () => {
-    resetVoting();
-    toast({
-      title: 'Voting reset',
-      description: 'All votes have been cleared',
-      status: 'info',
-      duration: 2000,
-      isClosable: true,
-    });
-  };
+  
+  const {
+    handleRevealResults,
+    handleResetVoting,
+    handleEndSession: handleEndSessionAction,
+    handleNewVoting: handleNewVotingAction,
+  } = useScrumMasterActions();
 
   const handleEndSession = () => {
     onEndSessionOpen();
@@ -62,27 +41,11 @@ const ScrumMasterControls = ({
 
   const handleConfirmEndSession = () => {
     onEndSessionClose();
-    endSession();
-    toast({
-      title: 'Session ended',
-      description: 'The session has been terminated',
-      status: 'success',
-      duration: 2000,
-      isClosable: true,
-    });
+    handleEndSessionAction();
   };
 
   const handleNewVoting = () => {
-    // If voting is active and results are not visible, show confirmation
-    if (isVotingActive && !isResultsVisible) {
-      const confirmed = window.confirm(
-        'Voting is currently in progress. Starting a new vote will reset all current votes. Do you want to continue?'
-      );
-      if (!confirmed) {
-        return;
-      }
-    }
-    onOpen();
+    handleNewVotingAction(isVotingActive, isResultsVisible, onOpen);
   };
 
   return (
