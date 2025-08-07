@@ -10,7 +10,7 @@ module.exports = {
     '^.+\\.js$': 'babel-jest',
   },
   extensionsToTreatAsEsm: ['.ts'],
-  moduleNameMapping: {
+  moduleNameMapper: {
     '^(\\.{1,2}/.*)\\.js$': '$1',
   },
   collectCoverageFrom: [

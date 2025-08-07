@@ -31,6 +31,18 @@ delete (window as any).location;
   pathname: '/',
 };
 
+// Mock useHealthCheck hook to prevent act() warnings
+jest.mock('../../../src/hooks/useHealthCheck', () => ({
+  useHealthCheck: jest.fn(() => ({
+    healthStatus: { status: 'healthy' },
+    isHealthy: true,
+    isUnhealthy: false,
+    isChecking: false,
+    manualCheck: jest.fn(),
+    lastChecked: '2024-01-01T12:00:00.000Z'
+  }))
+}));
+
 // Test component that uses the context
 const TestComponent = () => {
   const {

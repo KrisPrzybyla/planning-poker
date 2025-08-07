@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 
 interface HealthStatus {
   status: 'healthy' | 'unhealthy' | 'checking';
@@ -38,6 +38,14 @@ export const useHealthCheck = (options: UseHealthCheckOptions = {}) => {
   const [healthStatus, setHealthStatus] = useState<HealthStatus>({
     status: 'checking'
   });
+
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   const checkHealth = useCallback(async (): Promise<HealthStatus> => {
     try {
@@ -81,15 +89,18 @@ export const useHealthCheck = (options: UseHealthCheckOptions = {}) => {
   }, []);
 
   const performHealthCheck = useCallback(async () => {
-    if (!enabled) return;
+    if (!enabled || !isMountedRef.current) return;
 
     setHealthStatus(prev => ({ ...prev, status: 'checking' }));
     
     const newStatus = await checkHealth();
-    setHealthStatus(newStatus);
     
-    if (onStatusChange) {
-      onStatusChange(newStatus);
+    if (isMountedRef.current) {
+      setHealthStatus(newStatus);
+      
+      if (onStatusChange) {
+        onStatusChange(newStatus);
+      }
     }
   }, [checkHealth, enabled, onStatusChange]);
 
@@ -109,13 +120,18 @@ export const useHealthCheck = (options: UseHealthCheckOptions = {}) => {
 
   // Manual health check function
   const manualCheck = useCallback(async () => {
+    if (!isMountedRef.current) return;
+    
     setHealthStatus(prev => ({ ...prev, status: 'checking' }));
     
     const newStatus = await checkHealth();
-    setHealthStatus(newStatus);
     
-    if (onStatusChange) {
-      onStatusChange(newStatus);
+    if (isMountedRef.current) {
+      setHealthStatus(newStatus);
+      
+      if (onStatusChange) {
+        onStatusChange(newStatus);
+      }
     }
   }, [checkHealth, onStatusChange]);
 

@@ -104,55 +104,6 @@ docker-compose down
 
 After running, the application will be available at: `http://localhost` (port 80)
 
-## Server Deployment (EC2, VPS, Cloud)
-
-### Server Requirements
-
-- Docker and Docker Compose
-- Open ports: 80 (HTTP) and optionally 443 (HTTPS)
-
-### Deployment Steps
-
-1. **Clone repository on server:**
-```bash
-git clone <repository-url>
-cd trae_poker
-```
-
-2. **Run application:**
-```bash
-# Option 1: Docker Compose (recommended)
-npm run docker:up
-
-# Option 2: Docker manually
-npm run docker:build
-npm run docker:run
-```
-
-3. **Check status:**
-```bash
-docker ps
-```
-
-4. **Application will be available at server IP address:**
-```
-http://YOUR_SERVER_IP
-```
-
-### Important Deployment Notes
-
-- **Socket.IO**: Application automatically detects server address (doesn't use localhost)
-- **Ports**: Application maps port 80 (external) to port 3000 (internal container)
-- **Restart**: Container automatically restarts after server restart
-- **Firewall**: Make sure port 80 is open in security groups (EC2) or firewall
-
-### Troubleshooting
-
-If Socket.IO doesn't work:
-1. Check if port 80 is open
-2. Check container logs: `docker logs planning-poker-app`
-3. Check if container is running: `docker ps`
-
 ## Project Structure
 
 - `/src` - client application source code

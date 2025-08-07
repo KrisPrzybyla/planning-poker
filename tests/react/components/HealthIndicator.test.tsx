@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { ChakraProvider } from '@chakra-ui/react';
 import HealthIndicator from '../../../src/components/HealthIndicator';
 import * as useHealthCheckModule from '../../../src/hooks/useHealthCheck';
@@ -52,23 +52,27 @@ describe('HealthIndicator', () => {
       expect(button).toBeInTheDocument();
     });
 
-    test('should display connected status when visible', () => {
+    test('should display connected status when visible', async () => {
       // Mock component to be visible
       renderWithChakra(<HealthIndicator />);
       
       // Click the small button to make it visible
       const toggleButton = screen.getByRole('button');
-      fireEvent.click(toggleButton);
+      await act(async () => {
+        fireEvent.click(toggleButton);
+      });
       
       expect(screen.getByText('Connected')).toBeInTheDocument();
     });
 
-    test('should show details when showDetails is true and expanded', () => {
+    test('should show details when showDetails is true and expanded', async () => {
       renderWithChakra(<HealthIndicator showDetails={true} />);
       
       // Click to make visible first
       const toggleButton = screen.getByRole('button');
-      fireEvent.click(toggleButton);
+      await act(async () => {
+        fireEvent.click(toggleButton);
+      });
       
       expect(screen.getByText('Connected')).toBeInTheDocument();
     });
@@ -90,22 +94,26 @@ describe('HealthIndicator', () => {
       });
     });
 
-    test('should display disconnected status when visible', () => {
+    test('should display disconnected status when visible', async () => {
       renderWithChakra(<HealthIndicator />);
       
       // Click to make visible
       const toggleButton = screen.getByRole('button');
-      fireEvent.click(toggleButton);
+      await act(async () => {
+        fireEvent.click(toggleButton);
+      });
       
       expect(screen.getByText('Disconnected')).toBeInTheDocument();
     });
 
-    test('should show red status indicator when visible', () => {
+    test('should show red status indicator when visible', async () => {
       renderWithChakra(<HealthIndicator />);
       
       // Click to make visible
       const toggleButton = screen.getByRole('button');
-      fireEvent.click(toggleButton);
+      await act(async () => {
+        fireEvent.click(toggleButton);
+      });
       
       expect(screen.getByText('Disconnected')).toBeInTheDocument();
     });
@@ -137,22 +145,26 @@ describe('HealthIndicator', () => {
       });
     });
 
-    test('should display checking status when visible', () => {
+    test('should display checking status when visible', async () => {
       renderWithChakra(<HealthIndicator />);
       
       // Click to make visible
       const toggleButton = screen.getByRole('button');
-      fireEvent.click(toggleButton);
+      await act(async () => {
+        fireEvent.click(toggleButton);
+      });
       
       expect(screen.getByText('Checking...')).toBeInTheDocument();
     });
 
-    test('should show yellow status indicator when visible', () => {
+    test('should show yellow status indicator when visible', async () => {
       renderWithChakra(<HealthIndicator />);
       
       // Click to make visible
       const toggleButton = screen.getByRole('button');
-      fireEvent.click(toggleButton);
+      await act(async () => {
+        fireEvent.click(toggleButton);
+      });
       
       expect(screen.getByText('Checking...')).toBeInTheDocument();
     });
@@ -170,19 +182,23 @@ describe('HealthIndicator', () => {
       });
     });
 
-    test('should call manualCheck when refresh button is clicked', () => {
+    test('should call manualCheck when refresh button is clicked', async () => {
       renderWithChakra(<HealthIndicator />);
       
       // First click to make visible
       const toggleButton = screen.getByRole('button');
-      fireEvent.click(toggleButton);
+      await act(async () => {
+        fireEvent.click(toggleButton);
+      });
       
       // Now find the refresh button (there should be multiple buttons now)
       const buttons = screen.getAllByRole('button');
       const refreshButton = buttons.find(button => button.getAttribute('title') !== 'Hide indicator');
       
       if (refreshButton) {
-        fireEvent.click(refreshButton);
+        await act(async () => {
+          fireEvent.click(refreshButton);
+        });
         expect(mockManualCheck).toHaveBeenCalledTimes(1);
       }
     });
@@ -206,16 +222,20 @@ describe('HealthIndicator', () => {
       });
     });
 
-    test('should show detailed information when showDetails is true and expanded', () => {
+    test('should show detailed information when showDetails is true and expanded', async () => {
       renderWithChakra(<HealthIndicator showDetails={true} />);
       
       // Click to make visible
       const toggleButton = screen.getByRole('button');
-      fireEvent.click(toggleButton);
+      await act(async () => {
+        fireEvent.click(toggleButton);
+      });
       
       // Click to expand details
       const expandButton = screen.getByText('Connected');
-      fireEvent.click(expandButton);
+      await act(async () => {
+        fireEvent.click(expandButton);
+      });
       
       expect(screen.getByText('Status:')).toBeInTheDocument();
       expect(screen.getByText('Last Checked:')).toBeInTheDocument();
@@ -224,12 +244,14 @@ describe('HealthIndicator', () => {
       expect(screen.getByText('Connections:')).toBeInTheDocument();
     });
 
-    test('should not show details when showDetails is false', () => {
+    test('should not show details when showDetails is false', async () => {
       renderWithChakra(<HealthIndicator showDetails={false} />);
       
       // Click to make visible
       const toggleButton = screen.getByRole('button');
-      fireEvent.click(toggleButton);
+      await act(async () => {
+        fireEvent.click(toggleButton);
+      });
       
       expect(screen.queryByText('Status:')).not.toBeInTheDocument();
       expect(screen.queryByText('Last Checked:')).not.toBeInTheDocument();

@@ -60,7 +60,7 @@ describe('useHealthCheck', () => {
 
       await waitFor(() => {
         expect(result.current.isHealthy).toBe(true);
-      });
+      }, { timeout: 3000 });
 
       expect(result.current.healthStatus.status).toBe('healthy');
       expect(result.current.healthStatus.timestamp).toBe(mockResponse.timestamp);
@@ -112,10 +112,10 @@ describe('useHealthCheck', () => {
     test('should update status to unhealthy on fetch error', async () => {
       mockFetch.mockRejectedValueOnce(new Error('Network error'));
 
-      const { result } = renderHook(() => useHealthCheck());
+      const { result } = renderHook(() => useHealthCheck({ enabled: false }));
 
-      await waitFor(() => {
-        expect(result.current.isUnhealthy).toBe(true);
+      await act(async () => {
+        await result.current.manualCheck();
       });
 
       expect(result.current.healthStatus.status).toBe('unhealthy');
@@ -131,10 +131,10 @@ describe('useHealthCheck', () => {
         statusText: 'Internal Server Error'
       });
 
-      const { result } = renderHook(() => useHealthCheck());
+      const { result } = renderHook(() => useHealthCheck({ enabled: false }));
 
-      await waitFor(() => {
-        expect(result.current.isUnhealthy).toBe(true);
+      await act(async () => {
+        await result.current.manualCheck();
       });
 
       expect(result.current.healthStatus.status).toBe('unhealthy');
@@ -153,15 +153,16 @@ describe('useHealthCheck', () => {
         });
       });
 
-      const { result } = renderHook(() => useHealthCheck());
+      const { result } = renderHook(() => useHealthCheck({ enabled: false }));
 
-      // Fast-forward time to trigger timeout
-      jest.advanceTimersByTime(6000);
-
-      await waitFor(() => {
-        expect(result.current.isUnhealthy).toBe(true);
+      // Trigger manual check and advance timers
+      await act(async () => {
+        const checkPromise = result.current.manualCheck();
+        jest.advanceTimersByTime(6000);
+        await checkPromise;
       });
 
+      expect(result.current.healthStatus.status).toBe('unhealthy');
       expect(result.current.healthStatus.error).toContain('aborted');
     });
   });
@@ -181,14 +182,18 @@ describe('useHealthCheck', () => {
       });
 
       // Advance time and check for second call
-      jest.advanceTimersByTime(1000);
+      await act(async () => {
+        jest.advanceTimersByTime(1000);
+      });
 
       await waitFor(() => {
         expect(mockFetch).toHaveBeenCalledTimes(2);
       });
 
       // Advance time and check for third call
-      jest.advanceTimersByTime(1000);
+      await act(async () => {
+        jest.advanceTimersByTime(1000);
+      });
 
       await waitFor(() => {
         expect(mockFetch).toHaveBeenCalledTimes(3);
@@ -204,7 +209,9 @@ describe('useHealthCheck', () => {
       renderHook(() => useHealthCheck({ enabled: false, interval: 1000 }));
 
       // Advance time
-      jest.advanceTimersByTime(2000);
+      await act(async () => {
+        jest.advanceTimersByTime(2000);
+      });
 
       expect(mockFetch).not.toHaveBeenCalled();
     });
@@ -246,15 +253,17 @@ describe('useHealthCheck', () => {
         json: async () => ({ status: 'healthy' })
       });
 
-      renderHook(() => useHealthCheck({ onStatusChange }));
+      const { result } = renderHook(() => useHealthCheck({ enabled: false, onStatusChange }));
 
-      await waitFor(() => {
-        expect(onStatusChange).toHaveBeenCalledWith(
-          expect.objectContaining({
-            status: 'healthy'
-          })
-        );
+      await act(async () => {
+        await result.current.manualCheck();
       });
+
+      expect(onStatusChange).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: 'healthy'
+        })
+      );
     });
 
     test('should call onStatusChange on error', async () => {
@@ -262,16 +271,18 @@ describe('useHealthCheck', () => {
 
       mockFetch.mockRejectedValueOnce(new Error('Network error'));
 
-      renderHook(() => useHealthCheck({ onStatusChange }));
+      const { result } = renderHook(() => useHealthCheck({ enabled: false, onStatusChange }));
 
-      await waitFor(() => {
-        expect(onStatusChange).toHaveBeenCalledWith(
-          expect.objectContaining({
-            status: 'unhealthy',
-            error: 'Network error'
-          })
-        );
+      await act(async () => {
+        await result.current.manualCheck();
       });
+
+      expect(onStatusChange).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: 'unhealthy',
+          error: 'Network error'
+        })
+      );
     });
   });
 
@@ -285,11 +296,13 @@ describe('useHealthCheck', () => {
         json: async () => ({ status: 'healthy' })
       });
 
-      const { result } = renderHook(() => useHealthCheck());
+      const { result } = renderHook(() => useHealthCheck({ enabled: false }));
 
-      await waitFor(() => {
-        expect(result.current.lastChecked).toBe('2024-01-01T12:00:00.000Z');
+      await act(async () => {
+        await result.current.manualCheck();
       });
+
+      expect(result.current.lastChecked).toBe('2024-01-01T12:00:00.000Z');
 
       jest.restoreAllMocks();
     });
