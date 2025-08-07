@@ -1,6 +1,5 @@
 import {
   Box,
-  Text,
   List,
   Heading,
 } from '@chakra-ui/react';

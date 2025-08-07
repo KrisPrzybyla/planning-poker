@@ -80,7 +80,7 @@ describe('useHealthCheck', () => {
 
       await waitFor(() => {
         expect(mockFetch).toHaveBeenCalledWith(
-          'http://127.0.0.1:3001/api/health',
+          'http://localhost/api/health',
           expect.objectContaining({
             method: 'GET',
             headers: { 'Content-Type': 'application/json' }

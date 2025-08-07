@@ -24,7 +24,13 @@ const getBackendUrl = () => {
   if (typeof process !== 'undefined' && process.env?.VITE_BACKEND_URL) {
     return process.env.VITE_BACKEND_URL;
   }
-  // Default fallback URL
+  
+  // In production/Docker, use the same host as the current page
+  if (typeof window !== 'undefined') {
+    return `${window.location.protocol}//${window.location.host}`;
+  }
+  
+  // Default fallback URL for development
   return 'http://127.0.0.1:3001';
 };
 

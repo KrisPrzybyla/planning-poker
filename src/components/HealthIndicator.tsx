@@ -3,7 +3,6 @@ import {
   Flex,
   Text,
   Icon,
-  Tooltip,
   Badge,
   Button,
   useToast,

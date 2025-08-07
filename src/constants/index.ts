@@ -9,7 +9,9 @@ export const TOAST_DURATIONS = {
   MEDIUM: 3000,
 } as const;
 
-export const FIBONACCI_VALUES: readonly string[] = ['0', '1', '2', '3', '5', '8', '13', '21', '?', '☕'];
+import { FibonacciCard } from '../types';
+
+export const FIBONACCI_VALUES: readonly FibonacciCard[] = ['0', '1', '2', '3', '5', '8', '13', '21', '?', '☕'];
 
 export const CARD_TOOLTIPS = {
   '?': 'I don\'t know - need more information',
