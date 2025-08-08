@@ -121,8 +121,24 @@ app.get('/api/stats', (req, res) => {
   res.status(200).json(stats);
 });
 
-// Serve static files from the dist directory
-app.use(express.static(path.join(__dirname, 'dist')));
+// Serve static files from the dist directory with cache headers optimized for Cloudflare
+app.use(express.static(path.join(__dirname, 'dist'), {
+  setHeaders: (res, filePath) => {
+    const rel = filePath.replace(path.join(__dirname, 'dist'), '');
+    // HTML: never cache (always revalidate)
+    if (rel.endsWith('.html') || rel === '' || rel === '/' || rel === '/index.html') {
+      res.setHeader('Cache-Control', 'no-cache, max-age=0, must-revalidate');
+      return;
+    }
+    // Fingerprinted static assets (Vite: dist/assets/*-<hash>.<ext>)
+    if (rel.startsWith('/assets/')) {
+      res.setHeader('Cache-Control', 'public, max-age=31536000, s-maxage=31536000, immutable');
+      return;
+    }
+    // Other static files: short cache (safe default)
+    res.setHeader('Cache-Control', 'public, max-age=300');
+  }
+}));
 
 const server = createServer(app);
 const io = new Server(server, {
@@ -678,6 +694,7 @@ io.on('connection', (socket) => {
 
 // Handle React Router (SPA) - serve index.html for all non-API routes
 app.get('*', (req, res) => {
+  res.setHeader('Cache-Control', 'no-cache, max-age=0, must-revalidate');
   res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 
