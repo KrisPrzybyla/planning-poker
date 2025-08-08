@@ -87,7 +87,7 @@ npm run docker:run
 docker build -t planning-poker .
 
 # Uruchomienie kontenera
-docker run -p 3000:3000 planning-poker
+docker run -p 80:3000 planning-poker
 
 # Uruchomienie z docker-compose
 docker-compose up -d
