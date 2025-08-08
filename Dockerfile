@@ -20,7 +20,7 @@ FROM node:20-alpine AS prod-deps
 WORKDIR /app
 ENV HUSKY=0
 COPY package*.json ./
-RUN npm ci --omit=dev
+RUN npm ci --omit=dev --ignore-scripts
 
 # 4) Final runtime image (non-root)
 FROM node:20-alpine
