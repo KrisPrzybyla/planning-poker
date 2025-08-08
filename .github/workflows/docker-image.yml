@@ -77,7 +77,7 @@ jobs:
           push: true
           tags: |
             krzprzybyla/poker-planning:lowmem
-            krzprzybyla/poker-planning:${{ github.ref_name }}-lowmem
+            ${{ startsWith(github.ref, 'refs/tags/v') && format('krzprzybyla/poker-planning:{0}-lowmem', replace(github.ref_name, '/', '-')) }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
