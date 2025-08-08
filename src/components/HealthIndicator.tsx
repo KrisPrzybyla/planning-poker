@@ -13,7 +13,7 @@ import {
 } from '@chakra-ui/react';
 import { useState, useRef, useCallback } from 'react';
 import { CheckIcon, WarningIcon, RepeatIcon, ChevronDownIcon, ChevronUpIcon } from '@chakra-ui/icons';
-import { useHealthCheck } from '../hooks/useHealthCheck';
+import { useHealthCheck, HealthStatus } from '../hooks/useHealthCheck';
 
 interface HealthIndicatorProps {
   position?: 'fixed' | 'relative';
@@ -28,7 +28,7 @@ const HealthIndicator = ({ position = 'fixed', showDetails = false }: HealthIndi
   const toastShownRef = useRef<boolean>(false);
   const stableConnectionTimer = useRef<NodeJS.Timeout | null>(null);
 
-  const handleStatusChange = useCallback((status: any) => {
+  const handleStatusChange = useCallback((status: HealthStatus) => {
     const previousStatus = previousStatusRef.current;
     
     // Always show indicator when there are connection issues

@@ -1,0 +1,43 @@
+# Ultra Low Memory Dockerfile (64 MB RAM)
+FROM node:20-alpine
+
+# Install curl for health checks
+RUN apk add --no-cache curl
+
+# Set working directory
+WORKDIR /app
+
+# Set ultra low memory optimization environment variables
+ENV NODE_OPTIONS="--max-old-space-size=64"
+ENV UV_THREADPOOL_SIZE=1
+ENV NODE_NO_WARNINGS=1
+ENV NODE_ENV=production
+ENV HUSKY=0
+
+# Copy package files
+COPY package*.json ./
+
+# Install dependencies and move build tools to dependencies
+ENV HUSKY=0
+RUN npm pkg delete scripts.prepare && \
+    NODE_OPTIONS="--max-old-space-size=512" npm install -g typescript && \
+    NODE_OPTIONS="--max-old-space-size=512" npm install --include=dev
+
+# Copy source code
+COPY . .
+
+# Build the frontend with increased memory limit (skip type checking)
+RUN NODE_OPTIONS="--max-old-space-size=512" npx vite build
+
+# Remove dev dependencies to reduce image size
+RUN npm prune --production
+
+# Expose port
+EXPOSE 3000
+
+# Health check (ultra low memory optimized)
+HEALTHCHECK --interval=120s --timeout=3s --start-period=20s --retries=1 \
+  CMD curl -f http://localhost:3000/api/health || exit 1
+
+# Start the optimized server with ultra low memory settings
+CMD ["node", "server-optimized.js"]

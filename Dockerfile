@@ -1,26 +1,54 @@
-# Use Node.js 18 as base image
-FROM node:18-alpine
+# Multi-stage Dockerfile for smaller, secure runtime image
+
+# 1) Dependencies stage (installs all deps)
+FROM node:20-alpine AS deps
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci
+
+# 2) Builder stage (builds the frontend)
+FROM node:20-alpine AS builder
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
+COPY . .
+RUN npm run build
+
+# 3) Production deps (only production dependencies)
+FROM node:20-alpine AS prod-deps
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci --omit=dev
+
+# 4) Final runtime image (non-root)
+FROM node:20-alpine
 
 # Install curl for health checks
 RUN apk add --no-cache curl
 
-# Set working directory
+# Create non-root user and group
+RUN addgroup -S app && adduser -S app -G app
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
+ENV NODE_ENV=production
 
-# Install all dependencies (including dev dependencies for building)
-RUN npm ci
+# Build-time metadata
+ARG BUILD_DATE
+ARG VCS_REF
+ARG VERSION
+ARG REPO_URL
+LABEL org.opencontainers.image.created=$BUILD_DATE \
+      org.opencontainers.image.revision=$VCS_REF \
+      org.opencontainers.image.version=$VERSION \
+      org.opencontainers.image.source=$REPO_URL
 
-# Copy source code
-COPY . .
+# Copy only what's needed to run
+COPY --from=prod-deps /app/node_modules ./node_modules
+COPY --from=builder /app/dist ./dist
+COPY server.js package.json ./
 
-# Build the frontend
-RUN npm run build
-
-# Remove dev dependencies to reduce image size
-RUN npm prune --production
+# Set ownership to non-root user
+RUN chown -R app:app /app
+USER app
 
 # Expose port
 EXPOSE 3000
@@ -30,4 +58,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
   CMD curl -f http://localhost:3000/api/health || exit 1
 
 # Start the server
-CMD ["npm", "run", "server"]
+CMD ["node", "server.js"]

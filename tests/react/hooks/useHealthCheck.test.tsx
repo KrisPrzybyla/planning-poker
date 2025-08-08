@@ -16,7 +16,10 @@ describe('useHealthCheck', () => {
   });
 
   afterEach(() => {
-    jest.runOnlyPendingTimers();
+    // Ensure any pending timers are flushed within React act to avoid warnings
+    act(() => {
+      jest.runOnlyPendingTimers();
+    });
     jest.useRealTimers();
     process.env = originalEnv;
   });

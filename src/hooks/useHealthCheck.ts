@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 
-interface HealthStatus {
+export interface HealthStatus {
   status: 'healthy' | 'unhealthy' | 'checking';
   timestamp?: string;
   uptime?: number;

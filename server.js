@@ -10,8 +10,31 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-app.use(cors());
+app.use(cors({
+  origin: process.env.NODE_ENV === 'production' ? (process.env.CORS_ORIGIN || false) : '*',
+  credentials: false
+}));
 app.use(express.json());
+
+// Basic rate limiting for API endpoints (simple in-memory)
+const apiRateLimits = new Map();
+const API_WINDOW_MS = 60 * 1000;
+const API_MAX_REQUESTS = 60;
+app.use('/api/', (req, res, next) => {
+  const now = Date.now();
+  const key = req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'unknown';
+  let entry = apiRateLimits.get(key);
+  if (!entry || now - entry.start > API_WINDOW_MS) {
+    entry = { count: 0, start: now };
+  }
+  entry.count += 1;
+  apiRateLimits.set(key, entry);
+  if (entry.count > API_MAX_REQUESTS) {
+    res.status(429).json({ error: 'Too many requests' });
+  } else {
+    next();
+  }
+});
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
@@ -57,13 +80,16 @@ app.use(express.static(path.join(__dirname, 'dist')));
 const server = createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: '*',
+    origin: process.env.NODE_ENV === 'production' ? (process.env.CORS_ORIGIN || false) : '*',
     methods: ['GET', 'POST'],
   },
 });
 
 // Store rooms in memory (in a real app, you'd use a database)
 const rooms = new Map();
+
+// Allowed vote values (Planning Poker)
+const ALLOWED_VOTES = new Set(['0', '1', '2', '3', '5', '8', '13', '21', '?', '\u2615']);
 
 // Generate a random 6-character room code
 function generateRoomCode() {
@@ -327,8 +353,15 @@ io.on('connection', (socket) => {
       // Remove any existing vote by this user
       room.currentStory.votes = room.currentStory.votes.filter((v) => v.userId !== userId);
 
+      // Validate vote value
+      const valueStr = String(value);
+      if (!ALLOWED_VOTES.has(valueStr)) {
+        console.warn(`Rejected invalid vote value '${valueStr}' from user ${userId} in room ${roomId}`);
+        return;
+      }
+
       // Add new vote
-      room.currentStory.votes.push({ userId, value });
+      room.currentStory.votes.push({ userId, value: valueStr });
 
       // Broadcast room update
       io.to(roomId).emit('roomUpdated', room);
