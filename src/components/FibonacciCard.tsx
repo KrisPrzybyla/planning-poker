@@ -1,5 +1,7 @@
+import { memo } from 'react';
 import { Box, Text, Tooltip } from '@chakra-ui/react';
 import { FibonacciCard as FibonacciCardType } from '../types';
+import { CARD_TOOLTIPS, CARD_DIMENSIONS } from '../constants';
 
 interface FibonacciCardProps {
   value: FibonacciCardType;
@@ -10,14 +12,10 @@ interface FibonacciCardProps {
 }
 
 const getTooltip = (value: FibonacciCardType): string => {
-  switch (value) {
-    case '?':
-      return 'I don\'t know - need more information';
-    case '☕':
-      return 'I need a break';
-    default:
-      return `${value} story points`;
+  if (value in CARD_TOOLTIPS) {
+    return CARD_TOOLTIPS[value as keyof typeof CARD_TOOLTIPS];
   }
+  return `${value} story points`;
 };
 
 const FibonacciCard: React.FC<FibonacciCardProps> = ({
@@ -31,8 +29,8 @@ const FibonacciCard: React.FC<FibonacciCardProps> = ({
     <Tooltip label={getTooltip(value)} placement="top">
       <Box
         as="button"
-        width="70px"
-        height="100px"
+        width={CARD_DIMENSIONS.WIDTH}
+        height={CARD_DIMENSIONS.HEIGHT}
         borderRadius="md"
         border="2px solid"
         borderColor={isSelected ? 'blue.500' : 'gray.200'}
@@ -61,4 +59,4 @@ const FibonacciCard: React.FC<FibonacciCardProps> = ({
   );
 };
 
-export default FibonacciCard;
+export default memo(FibonacciCard);

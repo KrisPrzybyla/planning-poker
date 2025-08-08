@@ -1,6 +1,11 @@
-import { ChakraProvider, extendTheme } from '@chakra-ui/react';
+import { ChakraProvider, extendTheme, Box } from '@chakra-ui/react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { RoomProvider } from './context/RoomContext';
+import { RoomProvider, useRoom } from './context/RoomContext';
+import { useBeforeUnload } from './hooks/useBeforeUnload';
+
+// Components
+import Header from './components/Header';
+import HealthIndicator from './components/HealthIndicator';
 
 // Pages
 import HomePage from './pages/HomePage';
@@ -30,18 +35,46 @@ const theme = extendTheme({
   },
 });
 
-function App() {
+// Component that has access to room context
+function AppContent() {
+  const { room, currentUser, isConnected } = useRoom();
+  
+  // Enable beforeunload protection when user is in an active room
+  const shouldProtect = Boolean(
+    room && 
+    currentUser && 
+    isConnected && 
+    (room.isVotingActive || room.currentStory)
+  );
+
+  useBeforeUnload({
+    enabled: shouldProtect,
+    message: 'Czy na pewno chcesz opuścić stronę? Utracisz połączenie z sesją Planning Poker i możesz przegapić głosowanie.'
+  });
+
   return (
-    <ChakraProvider theme={theme}>
-      <RoomProvider>
-        <Router>
+    <Router>
+      <Box minH="100vh" bg="gray.50">
+        <Header />
+        <HealthIndicator showDetails={true} />
+        <Box>
           <Routes>
             <Route path="/" element={<HomePage />} />
             <Route path="/room/:roomId" element={<RoomPage />} />
             <Route path="/join/:roomId" element={<JoinPage />} />
             <Route path="*" element={<NotFoundPage />} />
           </Routes>
-        </Router>
+        </Box>
+      </Box>
+    </Router>
+  );
+}
+
+function App() {
+  return (
+    <ChakraProvider theme={theme}>
+      <RoomProvider>
+        <AppContent />
       </RoomProvider>
     </ChakraProvider>
   )

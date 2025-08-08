@@ -11,6 +11,45 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 app.use(cors());
+app.use(express.json());
+
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+  const healthStatus = {
+    status: 'healthy',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    environment: process.env.NODE_ENV || 'development',
+    version: '1.0.0',
+    services: {
+      database: 'memory', // Since we're using in-memory storage
+      socketio: 'active',
+      express: 'active'
+    },
+    stats: {
+      activeRooms: rooms.size,
+      totalConnections: io.engine.clientsCount
+    }
+  };
+
+  res.status(200).json(healthStatus);
+});
+
+// API endpoint to get server stats
+app.get('/api/stats', (req, res) => {
+  const stats = {
+    activeRooms: rooms.size,
+    totalConnections: io.engine.clientsCount,
+    rooms: Array.from(rooms.entries()).map(([id, room]) => ({
+      id,
+      userCount: room.users.length,
+      isVotingActive: room.isVotingActive,
+      hasStory: !!room.currentStory
+    }))
+  };
+
+  res.status(200).json(stats);
+});
 
 // Serve static files from the dist directory
 app.use(express.static(path.join(__dirname, 'dist')));
@@ -369,6 +408,67 @@ io.on('connection', (socket) => {
     console.log(`Session ended for room ${roomId}`);
   });
 
+  // Remove user from room (only Scrum Master can do this)
+  socket.on('removeUser', async ({ roomId, userIdToRemove }, callback) => {
+    try {
+      // Check if room exists
+      if (!rooms.has(roomId)) {
+        callback({ success: false, error: 'Room not found' });
+        return;
+      }
+
+      const room = rooms.get(roomId);
+      const requestingUserId = socket.data.userId;
+
+      // Check if requesting user is Scrum Master or Temporary Scrum Master
+      const requestingUser = room.users.find((u) => u.id === requestingUserId);
+      if (!requestingUser || (requestingUser.role !== 'Scrum Master' && requestingUser.role !== 'Temporary Scrum Master')) {
+        callback({ success: false, error: 'Only Scrum Master can remove users' });
+        return;
+      }
+
+      // Find user to remove
+      const userToRemoveIndex = room.users.findIndex((u) => u.id === userIdToRemove);
+      if (userToRemoveIndex === -1) {
+        callback({ success: false, error: 'User not found' });
+        return;
+      }
+
+      const userToRemove = room.users[userToRemoveIndex];
+
+      // Prevent removing Scrum Master (including self)
+      if (userToRemove.role === 'Scrum Master' || userToRemove.role === 'Temporary Scrum Master') {
+        callback({ success: false, error: 'Cannot remove Scrum Master' });
+        return;
+      }
+
+      // Remove user from room
+      room.users.splice(userToRemoveIndex, 1);
+
+      // Remove user's votes if any
+      if (room.currentStory) {
+        room.currentStory.votes = room.currentStory.votes.filter(vote => vote.userId !== userIdToRemove);
+      }
+
+      // Notify the removed user (if connected)
+      const removedUserSockets = await io.in(roomId).fetchSockets();
+      const removedUserSocket = removedUserSockets.find(s => s.data.userId === userIdToRemove);
+      if (removedUserSocket) {
+        removedUserSocket.emit('userRemoved', { reason: 'Removed by Scrum Master' });
+        removedUserSocket.leave(roomId);
+      }
+
+      // Broadcast room update to remaining users
+      io.to(roomId).emit('roomUpdated', room);
+
+      callback({ success: true });
+      console.log(`User ${userToRemove.name} removed from room ${roomId} by ${requestingUser.name}`);
+    } catch (error) {
+      console.error('Error removing user:', error);
+      callback({ success: false, error: 'Failed to remove user' });
+    }
+  });
+
   // Handle disconnection
   socket.on('disconnect', () => {
     try {
@@ -388,7 +488,7 @@ io.on('connection', (socket) => {
           user.isConnected = false;
           user.disconnectedAt = Date.now();
 
-          // If disconnected user is Scrum Master, promote temporary SM
+          // If disconnected user is Scrum Master, promote temporary SM after 2 seconds
           if (user.role === 'Scrum Master') {
             // Find the oldest connected participant to promote
             const connectedUsers = room.users.filter(u => u.isConnected && u.id !== userId);
@@ -396,17 +496,36 @@ io.on('connection', (socket) => {
               // Mark original SM as temporarily displaced
               user.role = 'Displaced Scrum Master';
               
-              // Promote first connected user to temporary SM
-              connectedUsers[0].role = 'Temporary Scrum Master';
-              
-              console.log(`User ${connectedUsers[0].name} promoted to Temporary Scrum Master in room ${roomId} (original SM disconnected)`);
-              
-              // Send notification about SM change
-              io.to(roomId).emit('scrumMasterChanged', {
-                newScrumMaster: connectedUsers[0],
-                reason: 'original_disconnected',
-                originalScrumMaster: user
-              });
+              // Wait 2 seconds before promoting temporary SM
+              setTimeout(() => {
+                // Check if room still exists and user is still disconnected
+                if (rooms.has(roomId)) {
+                  const currentRoom = rooms.get(roomId);
+                  const currentUser = currentRoom.users.find(u => u.id === userId);
+                  
+                  // Only promote if original SM is still disconnected
+                  if (currentUser && !currentUser.isConnected && currentUser.role === 'Displaced Scrum Master') {
+                    // Find first connected user to promote (re-check in case users changed)
+                    const currentConnectedUsers = currentRoom.users.filter(u => u.isConnected && u.id !== userId);
+                    if (currentConnectedUsers.length > 0) {
+                      // Promote first connected user to temporary SM
+                      currentConnectedUsers[0].role = 'Temporary Scrum Master';
+                      
+                      console.log(`User ${currentConnectedUsers[0].name} promoted to Temporary Scrum Master in room ${roomId} (original SM disconnected for 2s)`);
+                      
+                      // Send notification about SM change
+                      io.to(roomId).emit('scrumMasterChanged', {
+                        newScrumMaster: currentConnectedUsers[0],
+                        reason: 'original_disconnected',
+                        originalScrumMaster: currentUser
+                      });
+                      
+                      // Broadcast room update
+                      io.to(roomId).emit('roomUpdated', currentRoom);
+                    }
+                  }
+                }
+              }, 2000); // 2 seconds delay
             }
           }
 
@@ -474,7 +593,7 @@ app.get('*', (req, res) => {
 });
 
 // Start server
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3001;
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
