@@ -36,14 +36,14 @@ npm install
 ### Development Mode
 
 ```bash
-# Run client and server simultaneously
+# Run client (Vite on http://localhost:5173) and server (Express on http://localhost:3000) simultaneously
 npm run dev:all
 
 # Or separately:
-# Run client
+# Run client (Vite)
 npm run dev
 
-# Run server
+# Run server (Express)
 npm run server
 ```
 
@@ -102,7 +102,7 @@ docker-compose up -d
 docker-compose down
 ```
 
-After running, the application will be available at: `http://localhost` (port 80)
+After running with Docker, the application will be available at: `http://localhost` (port 80). In development, open `http://localhost:5173` (frontend) which proxies API and WebSocket requests to `http://localhost:3000`.
 
 ## Project Structure
 

@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  planning-poker:
+    image: krzprzybyla/poker-planning:lowmem
+    container_name: planning-poker-app
+    restart: unless-stopped
+    ports:
+      - "80:3000"
+    environment:
+      - LOG_DIR=/logs
+      - LOG_LEVEL=warn
+      - LOG_TO_CONSOLE=false
+      - ACCESS_LOG_ENABLED=true
+      - ACCESS_LOG_ERRORS_ONLY=true
+      - ACCESS_LOG_SAMPLE=10
+      - ACCESS_LOG_SLOW_MS=0
+      - TRUST_PROXY=true
+    volumes:
+      - /var/log/poker-planning:/logs
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M

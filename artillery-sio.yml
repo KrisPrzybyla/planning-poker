@@ -1,0 +1,108 @@
+# Artillery v2 Socket.IO test for Planning Poker app
+# Target: production instance
+# Usage examples:
+#   - Participants only (join existing room):
+#       ROOM_ID=ABC123 artillery run artillery-sio.yml
+#   - Scrum master flow (creates rooms):
+#       artillery run --scenarios=scum_master_flow artillery-sio.yml
+#     (Uwaga: SM-flow nie dzieli roomId między VU, traktuj jako smoke test e2e.)
+
+config:
+  target: "http://localhost"
+
+  # Fazy obciążenia – dopasuj do potrzeb
+  phases:
+    - duration: 60   # rozgrzewka 1 min
+      arrivalRate: 5
+      name: warmup
+    - duration: 300  # 5 min narastania
+      arrivalRate: 20
+      rampTo: 100
+      name: ramp
+    - duration: 300  # 5 min stałego obciążenia
+      arrivalRate: 100
+      name: sustain
+
+  engines:
+    socketio: {}
+
+  socketio:
+    transports: ["websocket"]
+    path: "/socket.io"
+    # secure: true # wnioskowane z https targetu
+
+  ensure:
+    maxErrorRate: 1 # akceptuj do 1% błędów
+
+  variables:
+    # Ustaw przez środowisko: ROOM_ID=ABC123 artillery run artillery-sio.yml
+    ROOM_ID: "{{ $env.ROOM_ID || '' }}"
+
+scenarios:
+  # 1) Scenariusz Scrum Master – pełny przepływ e2e dla jednego klienta
+  - name: scrum_master_flow
+    weight: 0 # ustaw na >0 aby włączyć w tescie mieszanym
+    engine: "socketio"
+    flow:
+      - emit:
+          channel: "createRoom"
+          data:
+            userName: "SM-{{ $randomString() }}"
+            initialStory: null
+          acknowledge: true
+          capture:
+            - json: "$.roomId"
+              as: "roomId"
+            - json: "$.user.id"
+              as: "smUserId"
+      - think: 1
+      - emit:
+          channel: "startVoting"
+          data:
+            roomId: "{{ roomId }}"
+            story:
+              title: "Historia {{ $randomString() }}"
+              description: "Test load"
+      - think: 1
+      - emit:
+          channel: "submitVote"
+          data:
+            roomId: "{{ roomId }}"
+            userId: "{{ smUserId }}"
+            value: "5"
+      - think: 1
+      - emit:
+          channel: "revealResults"
+          data:
+            roomId: "{{ roomId }}"
+      - think: 1
+      - emit:
+          channel: "resetVoting"
+          data:
+            roomId: "{{ roomId }}"
+
+  # 2) Scenariusz Uczestnik – dołącz do podanego pokoju i oddaj głos
+  - name: participant_flow
+    weight: 1 # główny scenariusz do obciążenia – zwiększ jeśli używasz mieszanki
+    engine: "socketio"
+    flow:
+      # Uwaga: WYMAGANY ROOM_ID (np. ROOM_ID=ABC123)
+      - think: 0.5
+      - emit:
+          channel: "joinRoom"
+          data:
+            roomId: "{{ ROOM_ID }}"
+            userName: "U-{{ $randomString() }}"
+          acknowledge: true
+          capture:
+            - json: "$.user.id"
+              as: "userId"
+      - think: 1
+      - emit:
+          channel: "submitVote"
+          data:
+            roomId: "{{ ROOM_ID }}"
+            userId: "{{ userId }}"
+            value: "5"
+      - think: 3
+      # Zostawiamy klienta podłączonego – symuluje obecność na sesji

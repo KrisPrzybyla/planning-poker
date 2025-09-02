@@ -5,13 +5,83 @@ import cors from 'cors';
 import { v4 as uuidv4 } from 'uuid';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { logger } from './logger.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-app.use(cors());
+app.use(cors({
+  origin: process.env.NODE_ENV === 'production' ? (process.env.CORS_ORIGIN || false) : '*',
+  credentials: false
+}));
 app.use(express.json());
+
+// Access log (errors-only by default) with sampling and health exclusion
+if (process.env.TRUST_PROXY === 'true') {
+  app.set('trust proxy', true);
+}
+
+const accessLogEnabled = (process.env.ACCESS_LOG_ENABLED || 'true') === 'true';
+const accessLogErrorsOnly = (process.env.ACCESS_LOG_ERRORS_ONLY || 'true') === 'true';
+const accessLogSample = Math.max(0, Math.min(100, Number(process.env.ACCESS_LOG_SAMPLE) || 100));
+const accessLogSlowMs = Math.max(0, Number(process.env.ACCESS_LOG_SLOW_MS) || 0);
+
+app.use('/api', (req, res, next) => {
+  if (!accessLogEnabled) return next();
+  if (req.path === '/health') return next();
+
+  const start = process.hrtime.bigint();
+  res.on('finish', () => {
+    const status = res.statusCode;
+
+    const end = process.hrtime.bigint();
+    const durationMs = Number(end - start) / 1e6;
+
+    // Loguj tylko kiedy:
+    // - errorsOnly = true i status >= 400, lub
+    // - errorsOnly = false i (sampling przepuścił) oraz (jeśli ustawiono próg slowMs, to duration >= slowMs)
+    if (accessLogErrorsOnly) {
+      if (status < 400) return;
+    } else {
+      if (accessLogSample < 100 && Math.random() * 100 >= accessLogSample) return;
+      if (accessLogSlowMs > 0 && durationMs < accessLogSlowMs) return;
+    }
+
+    const ip = req.ip || req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'unknown';
+
+    logger.info('http_request', {
+      method: req.method,
+      path: req.originalUrl || req.url,
+      status,
+      durationMs: Math.round(durationMs),
+      ip,
+      userAgent: req.headers['user-agent']
+    });
+  });
+
+  next();
+});
+
+// Basic rate limiting for API endpoints (simple in-memory)
+const apiRateLimits = new Map();
+const API_WINDOW_MS = 60 * 1000;
+const API_MAX_REQUESTS = 60;
+app.use('/api/', (req, res, next) => {
+  const now = Date.now();
+  const key = req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'unknown';
+  let entry = apiRateLimits.get(key);
+  if (!entry || now - entry.start > API_WINDOW_MS) {
+    entry = { count: 0, start: now };
+  }
+  entry.count += 1;
+  apiRateLimits.set(key, entry);
+  if (entry.count > API_MAX_REQUESTS) {
+    res.status(429).json({ error: 'Too many requests' });
+  } else {
+    next();
+  }
+});
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
@@ -51,19 +121,38 @@ app.get('/api/stats', (req, res) => {
   res.status(200).json(stats);
 });
 
-// Serve static files from the dist directory
-app.use(express.static(path.join(__dirname, 'dist')));
+// Serve static files from the dist directory with cache headers optimized for Cloudflare
+app.use(express.static(path.join(__dirname, 'dist'), {
+  setHeaders: (res, filePath) => {
+    const rel = filePath.replace(path.join(__dirname, 'dist'), '');
+    // HTML: never cache (always revalidate)
+    if (rel.endsWith('.html') || rel === '' || rel === '/' || rel === '/index.html') {
+      res.setHeader('Cache-Control', 'no-cache, max-age=0, must-revalidate');
+      return;
+    }
+    // Fingerprinted static assets (Vite: dist/assets/*-<hash>.<ext>)
+    if (rel.startsWith('/assets/')) {
+      res.setHeader('Cache-Control', 'public, max-age=31536000, s-maxage=31536000, immutable');
+      return;
+    }
+    // Other static files: short cache (safe default)
+    res.setHeader('Cache-Control', 'public, max-age=300');
+  }
+}));
 
 const server = createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: '*',
+    origin: process.env.NODE_ENV === 'production' ? (process.env.CORS_ORIGIN || false) : '*',
     methods: ['GET', 'POST'],
   },
 });
 
 // Store rooms in memory (in a real app, you'd use a database)
 const rooms = new Map();
+
+// Allowed vote values (Planning Poker)
+const ALLOWED_VOTES = new Set(['0', '1', '2', '3', '5', '8', '13', '21', '?', '\u2615']);
 
 // Generate a random 6-character room code
 function generateRoomCode() {
@@ -90,10 +179,13 @@ function createUniqueRoomCode() {
 }
 
 io.on('connection', (socket) => {
-  console.log('User connected:', socket.id);
+  logger.info('User connected', { socketId: socket.id });
 
   // Create a new room
   socket.on('createRoom', ({ userName, initialStory }, callback) => {
+    const ack = typeof callback === 'function' ? callback : () => {};
+    callback = ack;
+
     try {
       const roomId = createUniqueRoomCode();
       const userId = uuidv4();
@@ -126,12 +218,12 @@ io.on('connection', (socket) => {
       socket.data.roomId = roomId;
 
       // Send success response
-      callback({ success: true, roomId, user });
+      ack({ success: true, roomId, user });
 
       // Broadcast room update to all users in the room
       io.to(roomId).emit('roomUpdated', room);
 
-      console.log(`Room created: ${roomId} by ${userName}`);
+      logger.info('Room created', { roomId, userName });
       
       // If initialStory is provided, start voting immediately
       if (initialStory) {
@@ -157,16 +249,19 @@ io.on('connection', (socket) => {
         // Broadcast room update
         io.to(roomId).emit('roomUpdated', room);
 
-        console.log(`Voting started in room ${roomId} for story: ${storyTitle}`);
+        logger.info('Voting started', { roomId, storyTitle });
       }
     } catch (error) {
-      console.error('Error creating room:', error);
-      callback({ success: false, error: 'Failed to create room' });
+      logger.error('Error creating room', { error: error instanceof Error ? { message: error.message, stack: error.stack } : error });
+      ack({ success: false, error: 'Failed to create room' });
     }
   });
 
   // Join an existing room
   socket.on('joinRoom', ({ roomId, userName }, callback) => {
+    const ack = typeof callback === 'function' ? callback : () => {};
+    callback = ack;
+
     try {
       // Check if room exists
       if (!rooms.has(roomId)) {
@@ -200,15 +295,18 @@ io.on('connection', (socket) => {
       // Broadcast room update to all users in the room
       io.to(roomId).emit('roomUpdated', room);
 
-      console.log(`User ${userName} joined room: ${roomId}`);
+      logger.info('User joined room', { roomId, userName });
     } catch (error) {
-      console.error('Error joining room:', error);
+      logger.error('Error joining room', { error: error instanceof Error ? { message: error.message, stack: error.stack } : error });
       callback({ success: false, error: 'Failed to join room' });
     }
   });
 
   // Rejoin an existing room (for page refresh)
   socket.on('rejoinRoom', ({ roomId, userId }, callback) => {
+    const ack = typeof callback === 'function' ? callback : () => {};
+    callback = ack;
+
     try {
       // Check if room exists
       if (!rooms.has(roomId)) {
@@ -261,9 +359,9 @@ io.on('connection', (socket) => {
       // Broadcast room update to all users in the room
       io.to(roomId).emit('roomUpdated', room);
 
-      console.log(`User ${user.name} rejoined room: ${roomId}`);
+      logger.info('User rejoined room', { roomId, userName: user?.name });
     } catch (error) {
-      console.error('Error rejoining room:', error);
+      logger.error('Error rejoining room', { error: error instanceof Error ? { message: error.message, stack: error.stack } : error });
       callback({ success: false, error: 'Failed to rejoin room' });
     }
   });
@@ -303,9 +401,9 @@ io.on('connection', (socket) => {
       // Broadcast room update
       io.to(roomId).emit('roomUpdated', room);
 
-      console.log(`Voting started in room ${roomId} for story: ${storyTitle}`);
+      logger.info('Voting started', { roomId, storyTitle });
     } catch (error) {
-      console.error('Error starting voting:', error);
+      logger.error('Error starting voting', { error: error instanceof Error ? { message: error.message, stack: error.stack } : error });
     }
   });
 
@@ -327,15 +425,22 @@ io.on('connection', (socket) => {
       // Remove any existing vote by this user
       room.currentStory.votes = room.currentStory.votes.filter((v) => v.userId !== userId);
 
+      // Validate vote value
+      const valueStr = String(value);
+      if (!ALLOWED_VOTES.has(valueStr)) {
+        logger.warn('Rejected invalid vote value', { roomId, userId, value: valueStr });
+        return;
+      }
+
       // Add new vote
-      room.currentStory.votes.push({ userId, value });
+      room.currentStory.votes.push({ userId, value: valueStr });
 
       // Broadcast room update
       io.to(roomId).emit('roomUpdated', room);
 
-      console.log(`User ${userId} voted ${value} in room ${roomId}`);
+      logger.info('Vote submitted', { roomId, userId, value: valueStr });
     } catch (error) {
-      console.error('Error submitting vote:', error);
+      logger.error('Error submitting vote', { error: error instanceof Error ? { message: error.message, stack: error.stack } : error });
     }
   });
 
@@ -358,9 +463,9 @@ io.on('connection', (socket) => {
       // Broadcast room update
       io.to(roomId).emit('roomUpdated', room);
 
-      console.log(`Results revealed in room ${roomId}`);
+      logger.info('Results revealed', { roomId });
     } catch (error) {
-      console.error('Error revealing results:', error);
+      logger.error('Error revealing results', { error: error instanceof Error ? { message: error.message, stack: error.stack } : error });
     }
   });
 
@@ -389,9 +494,9 @@ io.on('connection', (socket) => {
       // Broadcast room update
       io.to(roomId).emit('roomUpdated', room);
 
-      console.log(`Voting reset in room ${roomId}`);
+      logger.info('Voting reset', { roomId });
     } catch (error) {
-      console.error('Error resetting voting:', error);
+      logger.error('Error resetting voting', { error: error instanceof Error ? { message: error.message, stack: error.stack } : error });
     }
   });
 
@@ -405,7 +510,7 @@ io.on('connection', (socket) => {
 
     io.to(roomId).emit('sessionEnded');
     rooms.delete(roomId);
-    console.log(`Session ended for room ${roomId}`);
+    logger.info('Session ended', { roomId });
   });
 
   // Remove user from room (only Scrum Master can do this)
@@ -462,9 +567,9 @@ io.on('connection', (socket) => {
       io.to(roomId).emit('roomUpdated', room);
 
       callback({ success: true });
-      console.log(`User ${userToRemove.name} removed from room ${roomId} by ${requestingUser.name}`);
+      logger.info('User removed', { roomId, removedUser: userToRemove?.name, by: requestingUser?.name });
     } catch (error) {
-      console.error('Error removing user:', error);
+      logger.error('Error removing user', { error: error instanceof Error ? { message: error.message, stack: error.stack } : error });
       callback({ success: false, error: 'Failed to remove user' });
     }
   });
@@ -482,7 +587,7 @@ io.on('connection', (socket) => {
         const userIndex = room.users.findIndex((u) => u.id === userId);
         if (userIndex !== -1) {
           const user = room.users[userIndex];
-          console.log(`User ${user.name} disconnected from room ${roomId}`);
+          logger.info('User disconnected from room', { roomId, userName: user?.name });
 
           // Mark user as disconnected but don't remove immediately
           user.isConnected = false;
@@ -511,7 +616,7 @@ io.on('connection', (socket) => {
                       // Promote first connected user to temporary SM
                       currentConnectedUsers[0].role = 'Temporary Scrum Master';
                       
-                      console.log(`User ${currentConnectedUsers[0].name} promoted to Temporary Scrum Master in room ${roomId} (original SM disconnected for 2s)`);
+                      logger.info('Temporary Scrum Master promoted', { roomId, userName: currentConnectedUsers?.[0]?.name });
                       
                       // Send notification about SM change
                       io.to(roomId).emit('scrumMasterChanged', {
@@ -543,7 +648,7 @@ io.on('connection', (socket) => {
                 
                 // Only remove if still disconnected and enough time has passed
                 if (!currentUser.isConnected && (Date.now() - currentUser.disconnectedAt) >= 30000) {
-                  console.log(`Removing user ${currentUser.name} from room ${roomId} after timeout`);
+                  logger.info('User removed after timeout', { roomId, userName: currentUser?.name });
                   
                   // Remove user from room
                   currentRoom.users.splice(currentUserIndex, 1);
@@ -551,7 +656,7 @@ io.on('connection', (socket) => {
                   // If room is empty, remove it
                   if (currentRoom.users.length === 0) {
                     rooms.delete(roomId);
-                    console.log(`Room ${roomId} removed (empty)`);
+                    logger.info('Room removed (empty)', { roomId });
                   } else {
                     // If any type of Scrum Master left permanently, promote first user to Scrum Master
                     if ((currentUser.role === 'Scrum Master' || currentUser.role === 'Displaced Scrum Master' || currentUser.role === 'Temporary Scrum Master') && currentRoom.users.length > 0) {
@@ -559,7 +664,7 @@ io.on('connection', (socket) => {
                       const connectedUser = currentRoom.users.find(u => u.isConnected);
                       if (connectedUser) {
                         connectedUser.role = 'Scrum Master';
-                        console.log(`User ${connectedUser.name} promoted to Scrum Master in room ${roomId} (previous SM left permanently)`);
+                        logger.info('Scrum Master promoted (permanent)', { roomId, userName: connectedUser?.name });
                         
                         // Send notification about permanent SM change
                         io.to(roomId).emit('scrumMasterChanged', {
@@ -580,20 +685,21 @@ io.on('connection', (socket) => {
         }
       }
 
-      console.log('User disconnected:', socket.id);
+      logger.info('Socket disconnected', { socketId: socket.id });
     } catch (error) {
-      console.error('Error handling disconnect:', error);
+      logger.error('Error handling disconnect', { error: error instanceof Error ? { message: error.message, stack: error.stack } : error });
     }
   });
 });
 
 // Handle React Router (SPA) - serve index.html for all non-API routes
 app.get('*', (req, res) => {
+  res.setHeader('Cache-Control', 'no-cache, max-age=0, must-revalidate');
   res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 
 // Start server
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  logger.info('Server running', { port: PORT });
 });

@@ -6,6 +6,9 @@ afterEach(() => {
   cleanup();
 });
 
+// Mock window.scrollTo to silence jsdom "Not implemented: window.scrollTo" warnings
+Object.defineProperty(window, 'scrollTo', { value: jest.fn(), writable: true });
+
 // Mock Socket.IO client
 const mockSocket = {
   emit: jest.fn(),
