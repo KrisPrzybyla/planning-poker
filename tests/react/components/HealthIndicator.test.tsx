@@ -278,11 +278,15 @@ describe('HealthIndicator', () => {
     test('should configure useHealthCheck with correct interval', () => {
       renderWithChakra(<HealthIndicator />);
       
-      expect(mockUseHealthCheck).toHaveBeenCalledWith({
-        interval: 10000,
+      expect(mockUseHealthCheck).toHaveBeenCalledWith(expect.objectContaining({
+        interval: 15000,
         enabled: true,
-        onStatusChange: expect.any(Function)
-      });
+        onStatusChange: expect.any(Function),
+        failureThreshold: 2,
+        successThreshold: 1,
+        timeoutMs: 8000,
+        retryOnce: true,
+      }));
     });
   });
 });

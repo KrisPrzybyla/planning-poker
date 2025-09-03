@@ -19,6 +19,12 @@ A task estimation application using Planning Poker methodology for Scrum teams.
 - Socket.IO for real-time communication
 - Express.js for backend server
 
+## Configuration
+
+Environment variables (see .env.example):
+- TRUST_PROXY=true if behind reverse proxy/CDN to get correct client IP and proper rate limiting.
+- API_RATE_WINDOW_MS and API_RATE_MAX to tune API rate limiting (defaults: 60000ms, 180 req/window).
+
 ## Running the Application
 
 ### Requirements

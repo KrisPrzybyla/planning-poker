@@ -31,8 +31,8 @@ const HealthIndicator = ({ position = 'fixed', showDetails = false }: HealthIndi
   const handleStatusChange = useCallback((status: HealthStatus) => {
     const previousStatus = previousStatusRef.current;
     
-    // Always show indicator when there are connection issues
-    if (status.status === 'unhealthy' || status.status === 'checking') {
+    // Show indicator only when there are connection issues (avoid showing during 'checking')
+    if (status.status === 'unhealthy') {
       setIsVisible(true);
       // Clear any existing timer
       if (stableConnectionTimer.current) {
@@ -87,9 +87,13 @@ const HealthIndicator = ({ position = 'fixed', showDetails = false }: HealthIndi
   }, [toast]);
 
   const { healthStatus, isHealthy, isUnhealthy, isChecking, manualCheck, lastChecked } = useHealthCheck({
-    interval: 10000, // Check every 10 seconds to quickly detect when backend comes online
+    interval: 15000, // Less frequent by default
     enabled: true,
-    onStatusChange: handleStatusChange
+    onStatusChange: handleStatusChange,
+    failureThreshold: 2,
+    successThreshold: 1,
+    timeoutMs: 8000,
+    retryOnce: true,
   });
 
   const getStatusColor = () => {

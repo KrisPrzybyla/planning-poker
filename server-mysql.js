@@ -28,6 +28,34 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// Optional trust proxy for correct client IP behind reverse proxies
+if (process.env.TRUST_PROXY === 'true') {
+  app.set('trust proxy', true);
+}
+
+// Basic rate limiting for API endpoints (simple in-memory)
+const apiRateLimits = new Map();
+const API_WINDOW_MS = Number(process.env.API_RATE_WINDOW_MS) || 60 * 1000;
+const API_MAX_REQUESTS = Number(process.env.API_RATE_MAX) || 180;
+app.use('/api/', (req, res, next) => {
+  // Exclude health endpoint from rate limiting to avoid false alarms
+  if (req.path === '/health') return next();
+
+  const now = Date.now();
+  const key = req.ip || req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'unknown';
+  let entry = apiRateLimits.get(key);
+  if (!entry || now - entry.start > API_WINDOW_MS) {
+    entry = { count: 0, start: now };
+  }
+  entry.count += 1;
+  apiRateLimits.set(key, entry);
+  if (entry.count > API_MAX_REQUESTS) {
+    res.status(429).json({ error: 'Too many requests' });
+  } else {
+    next();
+  }
+});
+
 // Storage abstraction layer
 class StorageService {
   constructor() {

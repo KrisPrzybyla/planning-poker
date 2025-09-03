@@ -8,6 +8,9 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=3000
+      - TRUST_PROXY=true
+      - API_RATE_WINDOW_MS=60000
+      - API_RATE_MAX=180
     restart: unless-stopped
     container_name: planning-poker-app
     healthcheck:

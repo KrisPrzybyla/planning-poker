@@ -37,6 +37,8 @@ const theme = extendTheme({
 
 // Component that has access to room context
 function AppContent() {
+  // Only Scrum Master should see health indicator
+
   const { room, currentUser, isConnected } = useRoom();
   
   // Enable beforeunload protection when user is in an active room
@@ -56,7 +58,9 @@ function AppContent() {
     <Router>
       <Box minH="100vh" bg="gray.50">
         <Header />
-        <HealthIndicator showDetails={true} />
+        {(currentUser?.role === 'Scrum Master' || currentUser?.role === 'Temporary Scrum Master') && (
+          <HealthIndicator showDetails={true} />
+        )}
         <Box>
           <Routes>
             <Route path="/" element={<HomePage />} />

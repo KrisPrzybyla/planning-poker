@@ -96,6 +96,9 @@ curl http://localhost/api/health
 
 - `PORT` - port serwera (domyślnie 3000)
 - `NODE_ENV` - środowisko (automatycznie ustawiane na "production" w trybie produkcyjnym)
+- `TRUST_PROXY` - ustaw na `true`, jeśli aplikacja działa za reverse proxy/CDN (Nginx, Cloudflare). Umożliwia poprawne odczytanie IP klienta i lepsze działanie rate-limitingu.
+- `API_RATE_WINDOW_MS` - okno czasowe dla limitowania zapytań (w milisekundach). Domyślnie `60000` (60s).
+- `API_RATE_MAX` - maksymalna liczba zapytań na IP w oknie. Domyślnie `180`.
 
 ### Przykład uruchomienia z konfiguracją:
 ```bash

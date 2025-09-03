@@ -65,9 +65,12 @@ app.use('/api', (req, res, next) => {
 
 // Basic rate limiting for API endpoints (simple in-memory)
 const apiRateLimits = new Map();
-const API_WINDOW_MS = 60 * 1000;
-const API_MAX_REQUESTS = 60;
+const API_WINDOW_MS = Number(process.env.API_RATE_WINDOW_MS) || 60 * 1000;
+const API_MAX_REQUESTS = Number(process.env.API_RATE_MAX) || 180;
 app.use('/api/', (req, res, next) => {
+  // Exclude health endpoint from rate limiting to avoid false alarms
+  if (req.path === '/health') return next();
+
   const now = Date.now();
   const key = req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'unknown';
   let entry = apiRateLimits.get(key);
