@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, ReactNode, useRef, useMemo, useCallback } from 'react';
+import { useToast } from '@chakra-ui/react';
 import { io, Socket } from 'socket.io-client';
 import { Room, User, Story, VotingStats } from '../types';
 import { calculateVotingStats } from '../utils/votingUtils';
@@ -45,6 +46,7 @@ export const RoomProvider = ({ children }: RoomProviderProps) => {
   const [isConnected, setIsConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [votingStats, setVotingStats] = useState<VotingStats | null>(null);
+  const toast = useToast();
 
   // Use refs to access current values in event handlers
   const currentUserRef = useRef<User | null>(null);
@@ -95,6 +97,17 @@ export const RoomProvider = ({ children }: RoomProviderProps) => {
       } else {
         setVotingStats(null);
       }
+    });
+
+    socketInstance.on('serverShuttingDown', (data: { message: string }) => {
+      toast({
+        title: 'Server restarting',
+        description: data.message,
+        status: 'warning',
+        duration: 8000,
+        isClosable: true,
+        position: 'top',
+      });
     });
 
     socketInstance.on('sessionEnded', () => {
@@ -188,7 +201,7 @@ export const RoomProvider = ({ children }: RoomProviderProps) => {
     return () => {
       socketInstance.disconnect();
     };
-  }, []);
+  }, [toast]);
 
   const createRoom = useCallback(async (userName: string, initialStory?: Omit<Story, 'id' | 'votes'>): Promise<string> => {
     return new Promise((resolve, reject) => {
@@ -243,7 +256,8 @@ export const RoomProvider = ({ children }: RoomProviderProps) => {
       return;
     }
 
-    socket.emit('submitVote', { roomId: room.id, userId: currentUser.id, value });
+    // Identity is taken from the authenticated socket server-side, not this payload.
+    socket.emit('submitVote', { roomId: room.id, value });
   }, [socket, room, currentUser]);
 
   const revealResults = useCallback(() => {

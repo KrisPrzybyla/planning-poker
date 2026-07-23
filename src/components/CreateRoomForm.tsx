@@ -13,9 +13,10 @@ import {
   useToast,
 } from '@chakra-ui/react';
 import { useRoom } from '../context/RoomContext';
+import { useSavedUserName } from '../hooks/useSavedUserName';
 
 const CreateRoomForm = () => {
-  const [userName, setUserName] = useState('');
+  const [userName, setUserName] = useSavedUserName();
   const [storyTitle, setStoryTitle] = useState('');
   const [storyDescription, setStoryDescription] = useState('');
   const [isLoading, setIsLoading] = useState(false);

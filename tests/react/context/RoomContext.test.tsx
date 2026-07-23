@@ -409,9 +409,11 @@ describe('RoomContext', () => {
         voteButton.click();
       });
 
+      // userId is intentionally NOT sent — the server derives identity from
+      // the authenticated socket to prevent vote spoofing.
       expect(mockSocket.emit).toHaveBeenCalledWith(
         'submitVote',
-        { roomId: 'ROOM123', userId: 'user1', value: '5' }
+        { roomId: 'ROOM123', value: '5' }
       );
     });
 

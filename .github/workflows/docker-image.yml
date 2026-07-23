@@ -13,6 +13,18 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    services:
+      # Backend tests exercise the real server.js against Redis (room state
+      # storage) instead of a duplicated in-memory copy of the server logic.
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 3s
+          --health-retries 5
     steps:
       - name: Check out the repo
         uses: actions/checkout@v4

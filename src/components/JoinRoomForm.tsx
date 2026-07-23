@@ -12,7 +12,7 @@ import {
   useToast,
 } from '@chakra-ui/react';
 import { useRoom } from '../context/RoomContext';
-
+import { useSavedUserName } from '../hooks/useSavedUserName';
 
 interface JoinRoomFormProps {
   initialRoomId?: string;
@@ -21,7 +21,7 @@ interface JoinRoomFormProps {
 const JoinRoomForm = ({ initialRoomId }: JoinRoomFormProps) => {
   const { roomId: urlRoomId } = useParams<{ roomId: string }>();
   const [roomId, setRoomId] = useState(initialRoomId || urlRoomId || '');
-  const [userName, setUserName] = useState('');
+  const [userName, setUserName] = useSavedUserName();
   const [isLoading, setIsLoading] = useState(false);
   const { joinRoom } = useRoom();
   const navigate = useNavigate();

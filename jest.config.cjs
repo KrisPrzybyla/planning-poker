@@ -7,6 +7,11 @@ module.exports = {
     '^.+\\.ts$': ['ts-jest', {
       useESM: true
     }],
+    // Plain .js sources (server.js, roomStore.js, logger.js) are authored as
+    // real ESM ("type": "module" in package.json). babel.config.cjs compiles
+    // their import/export to CommonJS so the backend tests can import the
+    // actual server code under Jest's classic runtime, instead of testing a
+    // second, hand-rolled copy of the server logic.
     '^.+\\.js$': 'babel-jest',
   },
   extensionsToTreatAsEsm: ['.ts'],

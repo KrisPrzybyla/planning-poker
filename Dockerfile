@@ -77,7 +77,7 @@ ENV ACCESS_LOG_SLOW_MS=${ACCESS_LOG_SLOW_MS}
 # Copy only what's needed to run
 COPY --from=prod-deps /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
-COPY server.js logger.js package.json ./
+COPY server.js logger.js roomStore.js package.json ./
 
 # Set ownership to non-root user
 RUN chown -R app:app /app

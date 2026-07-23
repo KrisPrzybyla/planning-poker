@@ -27,6 +27,8 @@ module.exports = {
         'server-*.js',
         'server-mysql.js',
         'server-optimized.js',
+        'logger.js',
+        'roomStore.js',
       ],
       env: { node: true, browser: false },
       parserOptions: {
@@ -35,6 +37,14 @@ module.exports = {
       },
       rules: {
         'no-undef': 'off', // allow process, global, etc.
+      },
+    },
+    // CommonJS config files (Jest, Babel, etc.)
+    {
+      files: ['*.cjs'],
+      env: { node: true, browser: false },
+      rules: {
+        'no-undef': 'off',
       },
     },
     // Tests (TS/JS)

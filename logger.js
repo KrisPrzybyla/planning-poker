@@ -1,9 +1,5 @@
 import fs from 'fs';
 import path from 'path';
-import { fileURLToPath } from 'url';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 const LOG_DIR = process.env.LOG_DIR || path.join(process.cwd(), 'logs');
 const LOG_LEVEL = (process.env.LOG_LEVEL || 'info').toLowerCase();
@@ -12,7 +8,9 @@ const LOG_TO_CONSOLE = (process.env.LOG_TO_CONSOLE ?? 'true') === 'true';
 function ensureDirSync(dir) {
   try {
     fs.mkdirSync(dir, { recursive: true });
-  } catch {}
+  } catch {
+    // best-effort: if this fails, the write streams below will surface it
+  }
 }
 
 ensureDirSync(LOG_DIR);
@@ -42,7 +40,9 @@ function serializeMeta(meta) {
 function write(stream, line) {
   try {
     stream.write(line + '\n');
-  } catch {}
+  } catch {
+    // best-effort; a broken stream is already reported via its 'error' handler
+  }
 }
 
 function log(level, message, meta) {

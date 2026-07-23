@@ -1,315 +1,410 @@
-import { Server } from 'socket.io'
-import { createServer } from 'http'
-import { io as Client, Socket as ClientSocket } from 'socket.io-client'
+// Redis db index dedicated to this test run — separate from dev (/1) and
+// whatever else might share the instance. Must be set before server.js (and
+// its roomStore.js import) is loaded, since the client reads it at import time.
+process.env.REDIS_URL = process.env.REDIS_URL_TEST || 'redis://localhost:6379/15';
 
-describe('Socket.IO Server', () => {
-  let httpServer: any
-  let io: Server
-  let clientSocket: ClientSocket
-  let port: number
+import { io as Client, Socket as ClientSocket } from 'socket.io-client';
 
-  beforeAll((done) => {
-    httpServer = createServer()
-    io = new Server(httpServer, {
-      cors: {
-        origin: '*',
-        methods: ['GET', 'POST'],
-      },
-    })
+describe('Socket.IO Server (real server.js)', () => {
+  let app: any;
+  let server: any;
+  let io: any;
+  let runPresenceSweep: () => Promise<void>;
+  let reconcileOnStartup: () => Promise<void>;
+  let connectRedis: () => Promise<void>;
+  let disconnectRedis: () => Promise<void>;
+  let getRoom: (roomId: string) => Promise<any>;
+  let saveRoom: (room: any) => Promise<void>;
+  let listRoomIds: () => Promise<string[]>;
+  let deleteRoom: (roomId: string) => Promise<void>;
 
-    // Store rooms in memory (same as server)
-    const rooms = new Map()
+  let port: number;
+  const openClients: ClientSocket[] = [];
 
-    // Generate a random 6-character room code
-    function generateRoomCode() {
-      const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
-      let result = ''
-      for (let i = 0; i < 6; i++) {
-        result += characters.charAt(Math.floor(Math.random() * characters.length))
+  const createClient = (): ClientSocket => {
+    const socket = Client(`http://localhost:${port}`, { forceNew: true });
+    openClients.push(socket);
+    return socket;
+  };
+
+  const emitAck = <T = any>(socket: ClientSocket, event: string, payload: any): Promise<T> =>
+    new Promise((resolve) => socket.emit(event, payload, resolve));
+
+  const waitFor = (socket: ClientSocket, event: string): Promise<any> =>
+    new Promise((resolve) => socket.once(event, resolve));
+
+  // startVoting/submitVote/revealResults/resetVoting are fire-and-forget
+  // broadcasts (no ack) — a plain .once('roomUpdated') can catch an earlier
+  // broadcast still in flight rather than the one caused by this call. Wait
+  // for a room snapshot that actually matches what we expect instead.
+  const waitForRoomState = (
+    socket: ClientSocket,
+    predicate: (room: any) => boolean,
+    timeoutMs = 2000
+  ): Promise<any> =>
+    new Promise((resolve, reject) => {
+      const timer = setTimeout(() => {
+        socket.off('roomUpdated', handler);
+        reject(new Error('Timed out waiting for expected room state'));
+      }, timeoutMs);
+      function handler(room: any) {
+        if (predicate(room)) {
+          clearTimeout(timer);
+          socket.off('roomUpdated', handler);
+          resolve(room);
+        }
       }
-      return result
-    }
+      socket.on('roomUpdated', handler);
+    });
 
-    // Check if room code is unique
-    function isRoomCodeUnique(code: string) {
-      return !rooms.has(code)
-    }
+  beforeAll(async () => {
+    const serverModule = await import('../../server.js');
+    const roomStore = await import('../../roomStore.js');
 
-    // Create a new room code
-    function createUniqueRoomCode() {
-      let code
-      do {
-        code = generateRoomCode()
-      } while (!isRoomCodeUnique(code))
-      return code
-    }
+    app = serverModule.app;
+    server = serverModule.server;
+    io = serverModule.io;
+    runPresenceSweep = serverModule.runPresenceSweep;
+    reconcileOnStartup = serverModule.reconcileOnStartup;
+    connectRedis = roomStore.connectRedis;
+    disconnectRedis = roomStore.disconnectRedis;
+    getRoom = roomStore.getRoom;
+    saveRoom = roomStore.saveRoom;
+    listRoomIds = roomStore.listRoomIds;
+    deleteRoom = roomStore.deleteRoom;
 
-    // Simplified server logic for testing
-    io.on('connection', (socket) => {
-      socket.on('createRoom', ({ userName }, callback) => {
-        const roomId = createUniqueRoomCode()
-        const userId = 'test-user-id'
-        
-        const user = {
-          id: userId,
-          name: userName,
-          role: 'Scrum Master',
-          roomId,
-          isConnected: true,
-        }
+    await connectRedis();
+    await new Promise<void>((resolve) => {
+      server.listen(0, () => {
+        port = server.address().port;
+        resolve();
+      });
+    });
+  });
 
-        const room = {
-          id: roomId,
-          users: [user],
-          currentStory: null,
-          isVotingActive: false,
-          isResultsVisible: false,
-          votingCount: 0,
-        }
+  afterAll(async () => {
+    await new Promise<void>((resolve) => server.close(() => resolve()));
+    await disconnectRedis();
+  });
 
-        rooms.set(roomId, room)
-        socket.join(roomId)
-        socket.data = { userId, roomId }
+  afterEach(async () => {
+    openClients.forEach((s) => s.disconnect());
+    openClients.length = 0;
 
-        callback({ success: true, roomId, user })
-        io.to(roomId).emit('roomUpdated', room)
-      })
-
-      socket.on('joinRoom', ({ roomId, userName }, callback) => {
-        if (!rooms.has(roomId)) {
-          callback({ success: false, error: 'Room not found' })
-          return
-        }
-
-        const room = rooms.get(roomId)
-        const userId = 'test-user-id-2'
-
-        const user = {
-          id: userId,
-          name: userName,
-          role: 'Participant',
-          roomId,
-          isConnected: true,
-        }
-
-        room.users.push(user)
-        socket.join(roomId)
-        socket.data = { userId, roomId }
-
-        callback({ success: true, user })
-        io.to(roomId).emit('roomUpdated', room)
-      })
-
-      socket.on('startVoting', ({ roomId, story }) => {
-        if (!rooms.has(roomId)) return
-        
-        const room = rooms.get(roomId)
-        room.currentStory = {
-          id: 'test-story-id',
-          title: story.title,
-          description: story.description || '',
-          votes: [],
-        }
-        room.isVotingActive = true
-        room.isResultsVisible = false
-
-        io.to(roomId).emit('roomUpdated', room)
-      })
-
-      socket.on('submitVote', ({ roomId, userId, value }) => {
-        if (!rooms.has(roomId)) return
-        
-        const room = rooms.get(roomId)
-        if (!room.currentStory) return
-
-        room.currentStory.votes = room.currentStory.votes.filter((v: any) => v.userId !== userId)
-        room.currentStory.votes.push({ userId, value })
-
-        io.to(roomId).emit('roomUpdated', room)
-      })
-
-      socket.on('revealResults', ({ roomId }) => {
-        if (!rooms.has(roomId)) return
-        
-        const room = rooms.get(roomId)
-        room.isResultsVisible = true
-
-        io.to(roomId).emit('roomUpdated', room)
-      })
-
-      socket.on('removeUser', ({ roomId, userIdToRemove }, callback) => {
-        if (!rooms.has(roomId)) {
-          callback({ success: false, error: 'Room not found' })
-          return
-        }
-
-        const room = rooms.get(roomId)
-        const requestingUserId = socket.data?.userId
-        const requestingUser = room.users.find((u: any) => u.id === requestingUserId)
-        
-        if (!requestingUser || requestingUser.role !== 'Scrum Master') {
-          callback({ success: false, error: 'Only Scrum Master can remove users' })
-          return
-        }
-
-        const userIndex = room.users.findIndex((u: any) => u.id === userIdToRemove)
-        if (userIndex === -1) {
-          callback({ success: false, error: 'User not found' })
-          return
-        }
-
-        room.users.splice(userIndex, 1)
-        callback({ success: true })
-        io.to(roomId).emit('roomUpdated', room)
-      })
-    })
-
-    httpServer.listen(() => {
-      port = (httpServer.address() as any).port
-      clientSocket = Client(`http://localhost:${port}`)
-      clientSocket.on('connect', done)
-    })
-  })
-
-  afterAll(() => {
-    io.close()
-    clientSocket.close()
-    httpServer.close()
-  })
+    // Keep the test Redis db clean between tests.
+    const ids = await listRoomIds();
+    await Promise.all(ids.map((id) => deleteRoom(id)));
+  });
 
   describe('Room Management', () => {
-    it('should create a new room', (done) => {
-      clientSocket.emit('createRoom', { userName: 'Test User' }, (response: any) => {
-        expect(response.success).toBe(true)
-        expect(response.roomId).toBeDefined()
-        expect(response.user).toBeDefined()
-        expect(response.user.name).toBe('Test User')
-        expect(response.user.role).toBe('Scrum Master')
-        done()
-      })
-    })
+    it('should create a new room', async () => {
+      const client = createClient();
+      await waitFor(client, 'connect');
 
-    it('should join an existing room', (done) => {
-      clientSocket.emit('createRoom', { userName: 'Creator' }, (createResponse: any) => {
-        const roomId = createResponse.roomId
-        
-        const secondClient = Client(`http://localhost:${port}`)
-        secondClient.emit('joinRoom', { roomId, userName: 'Joiner' }, (joinResponse: any) => {
-          expect(joinResponse.success).toBe(true)
-          expect(joinResponse.user.name).toBe('Joiner')
-          expect(joinResponse.user.role).toBe('Participant')
-          secondClient.close()
-          done()
-        })
-      })
-    })
+      const response = await emitAck(client, 'createRoom', { userName: 'Test User' });
 
-    it('should handle room not found error', (done) => {
-      clientSocket.emit('joinRoom', { roomId: 'INVALID', userName: 'Test User' }, (response: any) => {
-        expect(response.success).toBe(false)
-        expect(response.error).toBe('Room not found')
-        done()
-      })
-    })
-  })
+      expect(response.success).toBe(true);
+      expect(response.roomId).toBeDefined();
+      expect(response.user.name).toBe('Test User');
+      expect(response.user.role).toBe('Scrum Master');
+
+      const room = await getRoom(response.roomId);
+      expect(room).not.toBeNull();
+      expect(room.users).toHaveLength(1);
+    });
+
+    it('should join an existing room', async () => {
+      const creator = createClient();
+      await waitFor(creator, 'connect');
+      const created = await emitAck(creator, 'createRoom', { userName: 'Creator' });
+
+      const joiner = createClient();
+      await waitFor(joiner, 'connect');
+      const joined = await emitAck(joiner, 'joinRoom', { roomId: created.roomId, userName: 'Joiner' });
+
+      expect(joined.success).toBe(true);
+      expect(joined.user.name).toBe('Joiner');
+      expect(joined.user.role).toBe('Participant');
+
+      const room = await getRoom(created.roomId);
+      expect(room.users).toHaveLength(2);
+    });
+
+    it('should return an error when joining a non-existent room', async () => {
+      const client = createClient();
+      await waitFor(client, 'connect');
+
+      const response = await emitAck(client, 'joinRoom', { roomId: 'NOPE99', userName: 'Test User' });
+
+      expect(response.success).toBe(false);
+      expect(response.error).toBe('Room not found');
+    });
+  });
 
   describe('Voting System', () => {
-    let roomId: string
+    let roomId: string;
+    let userId: string;
+    let client: ClientSocket;
 
-    beforeEach((done) => {
-      clientSocket.emit('createRoom', { userName: 'Scrum Master' }, (response: any) => {
-        roomId = response.roomId
-        done()
-      })
-    })
+    beforeEach(async () => {
+      client = createClient();
+      await waitFor(client, 'connect');
+      const created = await emitAck(client, 'createRoom', { userName: 'Scrum Master' });
+      roomId = created.roomId;
+      userId = created.user.id;
+    });
 
-    it('should start voting session', (done) => {
-      const story = { title: 'Test Story', description: 'Test Description' }
-      
-      clientSocket.on('roomUpdated', (room: any) => {
-        if (room.isVotingActive && room.currentStory) {
-          expect(room.currentStory.title).toBe('Test Story')
-          expect(room.isVotingActive).toBe(true)
-          done()
-        }
-      })
+    it('should start a voting session', async () => {
+      client.emit('startVoting', { roomId, story: { title: 'Test Story', description: 'desc' } });
 
-      clientSocket.emit('startVoting', { roomId, story })
-    })
+      const room = await waitForRoomState(client, (r) => r.isVotingActive === true);
+      expect(room.currentStory.title).toBe('Test Story');
+    });
 
-    it('should submit a vote', (done) => {
-      const story = { title: 'Test Story' }
-      
-      clientSocket.emit('startVoting', { roomId, story })
-      
-      clientSocket.on('roomUpdated', (room: any) => {
-        if (room.currentStory && room.currentStory.votes.length > 0) {
-          expect(room.currentStory.votes[0].value).toBe('5')
-          done()
-        }
-      })
+    it('should submit and record a vote', async () => {
+      client.emit('startVoting', { roomId, story: { title: 'Test Story' } });
+      await waitForRoomState(client, (r) => r.isVotingActive === true);
 
-      setTimeout(() => {
-        clientSocket.emit('submitVote', { 
-          roomId, 
-          userId: 'test-user-id', 
-          value: '5' 
-        })
-      }, 100)
-    })
+      client.emit('submitVote', { roomId, userId, value: '5' });
+      const room = await waitForRoomState(client, (r) => r.currentStory?.votes?.length > 0);
 
-    it('should reveal voting results', (done) => {
-      const story = { title: 'Test Story' }
-      
-      clientSocket.emit('startVoting', { roomId, story })
-      
-      clientSocket.on('roomUpdated', (room: any) => {
-        if (room.isResultsVisible) {
-          expect(room.isResultsVisible).toBe(true)
-          done()
-        }
-      })
+      expect(room.currentStory.votes).toEqual([{ userId, value: '5' }]);
+    });
 
-      setTimeout(() => {
-        clientSocket.emit('revealResults', { roomId })
-      }, 100)
-    })
-  })
+    it('should reject a vote value outside the Fibonacci deck', async () => {
+      client.emit('startVoting', { roomId, story: { title: 'Test Story' } });
+      await waitForRoomState(client, (r) => r.isVotingActive === true);
+
+      client.emit('submitVote', { roomId, userId, value: '999' });
+      // No roomUpdated should follow an invalid vote — assert directly against stored state.
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      const room = await getRoom(roomId);
+      expect(room.currentStory.votes).toEqual([]);
+    });
+
+    it('should reveal results and reset voting', async () => {
+      client.emit('startVoting', { roomId, story: { title: 'Test Story' } });
+      await waitForRoomState(client, (r) => r.isVotingActive === true);
+      client.emit('submitVote', { roomId, userId, value: '8' });
+      await waitForRoomState(client, (r) => r.currentStory?.votes?.length > 0);
+
+      client.emit('revealResults', { roomId });
+      await waitForRoomState(client, (r) => r.isResultsVisible === true);
+
+      client.emit('resetVoting', { roomId });
+      const room = await waitForRoomState(client, (r) => r.isResultsVisible === false && r.currentStory?.votes?.length === 0);
+      expect(room.currentStory.votes).toEqual([]);
+    });
+  });
 
   describe('Scrum Master Controls', () => {
-    let roomId: string
+    it('should allow the Scrum Master to remove a participant', async () => {
+      const sm = createClient();
+      await waitFor(sm, 'connect');
+      const created = await emitAck(sm, 'createRoom', { userName: 'Scrum Master' });
 
-    beforeEach((done) => {
-      clientSocket.emit('createRoom', { userName: 'Scrum Master' }, (response: any) => {
-        roomId = response.roomId
-        done()
-      })
-    })
+      const participant = createClient();
+      await waitFor(participant, 'connect');
+      const joined = await emitAck(participant, 'joinRoom', { roomId: created.roomId, userName: 'Participant' });
 
-    it('should allow scrum master to remove users', (done) => {
-      // First add a user to remove
-      const secondClient = Client(`http://localhost:${port}`)
-      secondClient.emit('joinRoom', { roomId, userName: 'User to Remove' }, (joinResponse: any) => {
-        const userIdToRemove = joinResponse.user.id
-        
-        clientSocket.emit('removeUser', { roomId, userIdToRemove }, (response: any) => {
-          expect(response.success).toBe(true)
-          secondClient.close()
-          done()
-        })
-      })
-    })
+      const response = await emitAck(sm, 'removeUser', { roomId: created.roomId, userIdToRemove: joined.user.id });
+      expect(response.success).toBe(true);
 
-    it('should prevent non-scrum masters from removing users', (done) => {
-      const secondClient = Client(`http://localhost:${port}`)
-      secondClient.emit('joinRoom', { roomId, userName: 'Regular User' }, () => {
-        secondClient.emit('removeUser', { roomId, userIdToRemove: 'some-id' }, (response: any) => {
-          expect(response.success).toBe(false)
-          expect(response.error).toBe('Only Scrum Master can remove users')
-          secondClient.close()
-          done()
-        })
-      })
-    })
-  })
-})
+      const room = await getRoom(created.roomId);
+      expect(room.users).toHaveLength(1);
+    });
+
+    it('should prevent a non-Scrum-Master from removing users', async () => {
+      const sm = createClient();
+      await waitFor(sm, 'connect');
+      const created = await emitAck(sm, 'createRoom', { userName: 'Scrum Master' });
+
+      const participant = createClient();
+      await waitFor(participant, 'connect');
+      await emitAck(participant, 'joinRoom', { roomId: created.roomId, userName: 'Participant' });
+
+      const response = await emitAck(participant, 'removeUser', { roomId: created.roomId, userIdToRemove: 'anyone' });
+      expect(response.success).toBe(false);
+      expect(response.error).toBe('Only Scrum Master can remove users');
+    });
+
+    it('should refuse to remove the Scrum Master', async () => {
+      const sm = createClient();
+      await waitFor(sm, 'connect');
+      const created = await emitAck(sm, 'createRoom', { userName: 'Scrum Master' });
+
+      const response = await emitAck(sm, 'removeUser', { roomId: created.roomId, userIdToRemove: created.user.id });
+      expect(response.success).toBe(false);
+      expect(response.error).toBe('Cannot remove Scrum Master');
+    });
+  });
+
+  describe('Disconnect handling and the presence sweep', () => {
+    it('ignores a stale disconnect from a socket a user has already reconnected past', async () => {
+      // This is a regression test for the bug diagnosed from a real HAR:
+      // a client reconnects on a new socket before the server notices the
+      // old one died; the old socket's belated 'disconnect' must not clobber
+      // the fresh session.
+      const original = createClient();
+      await waitFor(original, 'connect');
+      const created = await emitAck(original, 'createRoom', { userName: 'Alice' });
+      const { roomId, user } = created;
+
+      // Simulate the client reconnecting on a brand-new socket before the
+      // old one's disconnect is detected by the server.
+      const replacement = createClient();
+      await waitFor(replacement, 'connect');
+      const rejoined = await emitAck(replacement, 'rejoinRoom', { roomId, userId: user.id });
+      expect(rejoined.success).toBe(true);
+
+      // Now the *old* socket goes away. Without the fix, this would mark
+      // the (still live, just-rejoined) user offline and start a removal
+      // countdown.
+      original.disconnect();
+      await new Promise((resolve) => setTimeout(resolve, 150));
+
+      const room = await getRoom(roomId);
+      const persisted = room.users.find((u: any) => u.id === user.id);
+      expect(persisted.isConnected).toBe(true);
+      expect(persisted.disconnectedAt).toBeUndefined();
+    });
+
+    it('promotes a Temporary Scrum Master once the original has been away past the threshold', async () => {
+      const sm = createClient();
+      await waitFor(sm, 'connect');
+      const created = await emitAck(sm, 'createRoom', { userName: 'Scrum Master' });
+      const { roomId } = created;
+
+      const participant = createClient();
+      await waitFor(participant, 'connect');
+      const joined = await emitAck(participant, 'joinRoom', { roomId, userName: 'Participant' });
+
+      sm.disconnect();
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      // Fast-forward time instead of waiting the real threshold: back-date
+      // disconnectedAt directly in the store, then run one sweep tick.
+      const room = await getRoom(roomId);
+      const smUser = room.users.find((u: any) => u.role === 'Displaced Scrum Master');
+      expect(smUser).toBeDefined();
+      smUser.disconnectedAt = Date.now() - 10_000;
+      await saveRoom(room);
+
+      await runPresenceSweep();
+
+      const updated = await getRoom(roomId);
+      const promoted = updated.users.find((u: any) => u.id === joined.user.id);
+      expect(promoted.role).toBe('Temporary Scrum Master');
+    });
+
+    it('permanently removes a user who never reconnects, and deletes the room once empty', async () => {
+      const client = createClient();
+      await waitFor(client, 'connect');
+      const created = await emitAck(client, 'createRoom', { userName: 'Solo' });
+      const { roomId } = created;
+
+      client.disconnect();
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      const room = await getRoom(roomId);
+      room.users[0].disconnectedAt = Date.now() - 40_000;
+      await saveRoom(room);
+
+      await runPresenceSweep();
+
+      const gone = await getRoom(roomId);
+      expect(gone).toBeNull();
+    });
+  });
+
+  describe('Rejoin', () => {
+    it('restores the original Scrum Master and demotes the Temporary Scrum Master on return', async () => {
+      const sm = createClient();
+      await waitFor(sm, 'connect');
+      const created = await emitAck(sm, 'createRoom', { userName: 'Scrum Master' });
+      const { roomId, user: smUser } = created;
+
+      const participant = createClient();
+      await waitFor(participant, 'connect');
+      const joined = await emitAck(participant, 'joinRoom', { roomId, userName: 'Participant' });
+
+      sm.disconnect();
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      let room = await getRoom(roomId);
+      const displaced = room.users.find((u: any) => u.id === smUser.id);
+      displaced.disconnectedAt = Date.now() - 10_000;
+      await saveRoom(room);
+      await runPresenceSweep();
+
+      room = await getRoom(roomId);
+      expect(room.users.find((u: any) => u.id === joined.user.id).role).toBe('Temporary Scrum Master');
+
+      // Original Scrum Master comes back.
+      const returning = createClient();
+      await waitFor(returning, 'connect');
+      const rejoined = await emitAck(returning, 'rejoinRoom', { roomId, userId: smUser.id });
+      expect(rejoined.success).toBe(true);
+      expect(rejoined.user.role).toBe('Scrum Master');
+
+      room = await getRoom(roomId);
+      expect(room.users.find((u: any) => u.id === joined.user.id).role).toBe('Participant');
+    });
+  });
+
+  describe('Startup reconciliation', () => {
+    it('marks users from a previous process generation disconnected so stragglers can be reclaimed', async () => {
+      // Simulate a room persisted before a restart: the user is flagged
+      // connected in Redis, but there is no live socket for them.
+      const client = createClient();
+      await waitFor(client, 'connect');
+      const created = await emitAck(client, 'createRoom', { userName: 'Ghost' });
+      const { roomId } = created;
+      client.disconnect();
+
+      // Force the persisted state back to "connected, no disconnectedAt",
+      // exactly how it looks the instant before a hard restart.
+      let room = await getRoom(roomId);
+      room.users[0].isConnected = true;
+      delete room.users[0].disconnectedAt;
+      await saveRoom(room);
+
+      await reconcileOnStartup();
+
+      room = await getRoom(roomId);
+      expect(room.users[0].isConnected).toBe(false);
+      expect(typeof room.users[0].disconnectedAt).toBe('number');
+
+      // And the straggler is now eligible for removal by the sweep.
+      room.users[0].disconnectedAt = Date.now() - 40_000;
+      await saveRoom(room);
+      await runPresenceSweep();
+      expect(await getRoom(roomId)).toBeNull();
+    });
+  });
+
+  describe('Vote identity hardening', () => {
+    it('records the vote under the socket identity, ignoring a spoofed userId in the payload', async () => {
+      const sm = createClient();
+      await waitFor(sm, 'connect');
+      const created = await emitAck(sm, 'createRoom', { userName: 'Scrum Master' });
+      const { roomId, user: smUser } = created;
+
+      const participant = createClient();
+      await waitFor(participant, 'connect');
+      const joined = await emitAck(participant, 'joinRoom', { roomId, userName: 'Participant' });
+
+      sm.emit('startVoting', { roomId, story: { title: 'S' } });
+      await waitForRoomState(sm, (r) => r.isVotingActive === true);
+
+      // Participant tries to cast a vote as the Scrum Master by passing the
+      // SM's userId in the payload. The server must attribute it to the
+      // participant's own socket identity instead.
+      participant.emit('submitVote', { roomId, userId: smUser.id, value: '5' });
+      await waitForRoomState(participant, (r) => r.currentStory?.votes?.length > 0);
+
+      const room = await getRoom(roomId);
+      expect(room.currentStory.votes).toEqual([{ userId: joined.user.id, value: '5' }]);
+    });
+  });
+});
