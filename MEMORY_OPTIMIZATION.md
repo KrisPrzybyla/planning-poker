@@ -1,45 +1,45 @@
 # 🚀 Memory Optimization Guide
 
-## 📊 Wymagania RAM - Porównanie
+## 📊 RAM Requirements - Comparison
 
-| Wersja | RAM Min | RAM Opt | Użytkownicy | Pokoje |
+| Version | RAM Min | RAM Opt | Users | Rooms |
 |--------|---------|---------|-------------|--------|
-| **Standardowa** | 512 MB | 1 GB | 100+ | 20+ |
-| **Zoptymalizowana** | 128 MB | 256 MB | 50 | 10 |
+| **Standard** | 512 MB | 1 GB | 100+ | 20+ |
+| **Optimized** | 128 MB | 256 MB | 50 | 10 |
 | **Low Memory** | **64 MB** | **128 MB** | 20 | 5 |
 
-## 🎯 Optymalizacje Implementowane
+## 🎯 Implemented Optimizations
 
-### 1. **Ograniczenia Pamięci**
+### 1. **Memory Limits**
 - ✅ Node.js heap limit: 64-128 MB
-- ✅ Maksymalnie 50 pokoi jednocześnie
-- ✅ Maksymalnie 20 użytkowników na pokój
-- ✅ Limit rozmiaru wiadomości: 1KB
+- ✅ Up to 50 rooms at a time
+- ✅ Up to 20 users per room
+- ✅ Message size limit: 1KB
 
-### 2. **Automatyczne Czyszczenie**
-- ✅ Usuwanie nieaktywnych pokoi (10 min)
-- ✅ Usuwanie rozłączonych użytkowników (30 sek)
-- ✅ Garbage collection co 5 minut
-- ✅ Ograniczenie długości nazw i opisów
+### 2. **Automatic Cleanup**
+- ✅ Removing inactive rooms (10 min)
+- ✅ Removing disconnected users (30 sec)
+- ✅ Garbage collection every 5 minutes
+- ✅ Limiting name and description length
 
-### 3. **Minimalne Struktury Danych**
-- ✅ Uproszczone obiekty pokoi i użytkowników
-- ✅ Usunięcie zbędnych metadanych
-- ✅ Kompresja identyfikatorów
-- ✅ Ograniczenie historii głosowań
+### 3. **Minimal Data Structures**
+- ✅ Simplified room and user objects
+- ✅ Removed redundant metadata
+- ✅ Compressed identifiers
+- ✅ Limited voting history
 
-### 4. **Optymalizacje Socket.IO**
-- ✅ Krótsze timeouty połączeń
-- ✅ Ograniczenie rozmiaru bufora
-- ✅ Minimalne transporty
-- ✅ Wyłączenie niepotrzebnych funkcji
+### 4. **Socket.IO Optimizations**
+- ✅ Shorter connection timeouts
+- ✅ Reduced buffer size
+- ✅ Minimal transports
+- ✅ Disabled unnecessary features
 
-## 🚀 Sposoby Uruchomienia
+## 🚀 Ways to Run
 
 ### **Ultra Low Memory (64 MB)**
 ```bash
 ./start-low-memory.sh
-# lub
+# or
 npm run start:low-memory
 ```
 
@@ -53,14 +53,14 @@ npm run start:optimized
 npm start
 ```
 
-## 📈 Monitorowanie Pamięci
+## 📈 Memory Monitoring
 
-### **Endpoint Healthcheck**
+### **Healthcheck Endpoint**
 ```bash
 curl http://localhost:3000/api/health
 ```
 
-**Odpowiedź:**
+**Response:**
 ```json
 {
   "status": "ok",
@@ -69,18 +69,18 @@ curl http://localhost:3000/api/health
 }
 ```
 
-### **Monitoring w czasie rzeczywistym**
+### **Real-time monitoring**
 ```bash
-# Sprawdź zużycie pamięci
+# Check memory usage
 ps aux | grep node
 
-# Monitoruj w czasie rzeczywistym
+# Monitor in real time
 watch -n 1 'curl -s localhost:3000/api/health | jq'
 ```
 
-## ⚡ Porównanie Wydajności
+## ⚡ Performance Comparison
 
-| Metryka | Standard | Optimized | Low Memory |
+| Metric | Standard | Optimized | Low Memory |
 |---------|----------|-----------|------------|
 | **Startup Time** | 3s | 2s | 1s |
 | **Memory Usage** | 150-300MB | 80-150MB | 40-80MB |
@@ -88,9 +88,9 @@ watch -n 1 'curl -s localhost:3000/api/health | jq'
 | **Room Cleanup** | Manual | 10min | 5min |
 | **Response Time** | <100ms | <50ms | <30ms |
 
-## 🔧 Konfiguracja Środowiska
+## 🔧 Environment Configuration
 
-### **Zmienne Środowiskowe**
+### **Environment Variables**
 ```bash
 # Ultra low memory
 NODE_OPTIONS="--max-old-space-size=64 --gc-interval=100"
@@ -102,55 +102,55 @@ NODE_OPTIONS="--max-old-space-size=128"
 NODE_ENV=production
 ```
 
-### **Limity Systemu**
+### **System Limits**
 ```bash
-# Dla VPS z 128 MB RAM
+# For a VPS with 128 MB RAM
 ulimit -v 131072  # 128 MB virtual memory
 ulimit -m 131072  # 128 MB physical memory
 ```
 
-## 🎯 Rekomendacje Wdrożenia
+## 🎯 Deployment Recommendations
 
 ### **64-128 MB RAM**
-- ✅ Użyj `start:low-memory`
-- ✅ Maksymalnie 5 pokoi, 20 użytkowników
-- ✅ Idealny dla małych zespołów
+- ✅ Use `start:low-memory`
+- ✅ Up to 5 rooms, 20 users
+- ✅ Ideal for small teams
 
 ### **128-256 MB RAM**
-- ✅ Użyj `start:optimized`
-- ✅ Maksymalnie 10 pokoi, 50 użytkowników
-- ✅ Dobry balans funkcji/pamięci
+- ✅ Use `start:optimized`
+- ✅ Up to 10 rooms, 50 users
+- ✅ Good balance of features/memory
 
 ### **256+ MB RAM**
-- ✅ Użyj standardowej wersji
-- ✅ Pełna funkcjonalność
-- ✅ Bez ograniczeń
+- ✅ Use the standard version
+- ✅ Full functionality
+- ✅ No limits
 
-## 🚨 Ograniczenia Low Memory
+## 🚨 Low Memory Limitations
 
-### **Funkcje Wyłączone/Ograniczone:**
-- ❌ Szczegółowe logi
-- ❌ Historia głosowań
-- ❌ Rozszerzone metadane
-- ❌ Długie opisy (>500 znaków)
-- ❌ Długie nazwy użytkowników (>20 znaków)
+### **Disabled/Limited Features:**
+- ❌ Detailed logs
+- ❌ Voting history
+- ❌ Extended metadata
+- ❌ Long descriptions (>500 characters)
+- ❌ Long user names (>20 characters)
 
-### **Automatyczne Czyszczenie:**
-- 🔄 Pokoje nieaktywne >10 min
-- 🔄 Użytkownicy rozłączeni >30 sek
-- 🔄 Garbage collection co 5 min
+### **Automatic Cleanup:**
+- 🔄 Rooms inactive >10 min
+- 🔄 Users disconnected >30 sec
+- 🔄 Garbage collection every 5 min
 
-## 💡 Wskazówki Optymalizacji
+## 💡 Optimization Tips
 
-1. **Monitoruj pamięć** regularnie
-2. **Ustaw alerty** przy >80% użycia
-3. **Restartuj serwer** co 24h w środowisku produkcyjnym
-4. **Używaj reverse proxy** (nginx) dla statycznych plików
-5. **Skonfiguruj swap** jako backup (nie zalecane dla SSD)
+1. **Monitor memory** regularly
+2. **Set alerts** at >80% usage
+3. **Restart the server** every 24h in production
+4. **Use a reverse proxy** (nginx) for static files
+5. **Configure swap** as a backup (not recommended for SSD)
 
-## 🎉 Rezultat
+## 🎉 Result
 
-**Przed optymalizacją:** 512 MB RAM minimum
-**Po optymalizacji:** **64 MB RAM minimum** ⚡
+**Before optimization:** 512 MB RAM minimum
+**After optimization:** **64 MB RAM minimum** ⚡
 
-**Oszczędność:** 87% mniej pamięci! 🎯
+**Savings:** 87% less memory! 🎯

@@ -17,10 +17,10 @@ export const useBeforeUnload = ({ enabled, message }: UseBeforeUnloadOptions) =>
     event.preventDefault();
     
     // Chrome requires returnValue to be set
-    event.returnValue = message || 'Czy na pewno chcesz opuścić stronę? Utracisz połączenie z sesją Planning Poker.';
+    event.returnValue = message || 'Are you sure you want to leave? You will lose your connection to the Planning Poker session.';
     
     // For older browsers
-    return message || 'Czy na pewno chcesz opuścić stronę? Utracisz połączenie z sesją Planning Poker.';
+    return message || 'Are you sure you want to leave? You will lose your connection to the Planning Poker session.';
   }, [enabled, message]);
 
   useEffect(() => {
@@ -36,7 +36,7 @@ export const useBeforeUnload = ({ enabled, message }: UseBeforeUnloadOptions) =>
   // Return a function to manually trigger the warning (useful for testing)
   const triggerWarning = useCallback(() => {
     if (enabled) {
-      return window.confirm(message || 'Czy na pewno chcesz opuścić stronę? Utracisz połączenie z sesją Planning Poker.');
+      return window.confirm(message || 'Are you sure you want to leave? You will lose your connection to the Planning Poker session.');
     }
     return true;
   }, [enabled, message]);

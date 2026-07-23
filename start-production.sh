@@ -5,13 +5,13 @@
 
 echo "🚀 Starting Planning Poker in production mode..."
 
-# Check if Node.js 20+ is available
+# Check if Node.js 22+ is available
 NODE_VERSION=$(node --version | cut -d'v' -f2 | cut -d'.' -f1)
-if [ "$NODE_VERSION" -lt 20 ]; then
-    echo "❌ Error: Node.js 20+ is required. Current version: $(node --version)"
-    echo "💡 Please install Node.js 20+ or use nvm:"
-    echo "   nvm install 20"
-    echo "   nvm use 20"
+if [ "$NODE_VERSION" -lt 22 ]; then
+    echo "❌ Error: Node.js 22+ is required. Current version: $(node --version)"
+    echo "💡 Please install Node.js 22+ or use nvm:"
+    echo "   nvm install 22"
+    echo "   nvm use 22"
     exit 1
 fi
 

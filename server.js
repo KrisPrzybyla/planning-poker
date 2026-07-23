@@ -52,9 +52,9 @@ app.use('/api', (req, res, next) => {
     const end = process.hrtime.bigint();
     const durationMs = Number(end - start) / 1e6;
 
-    // Loguj tylko kiedy:
-    // - errorsOnly = true i status >= 400, lub
-    // - errorsOnly = false i (sampling przepuścił) oraz (jeśli ustawiono próg slowMs, to duration >= slowMs)
+    // Only log when:
+    // - errorsOnly = true and status >= 400, or
+    // - errorsOnly = false and (sampling passed) and (if slowMs threshold is set, duration >= slowMs)
     if (accessLogErrorsOnly) {
       if (status < 400) return;
     } else {

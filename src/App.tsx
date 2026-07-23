@@ -51,7 +51,7 @@ function AppContent() {
 
   useBeforeUnload({
     enabled: shouldProtect,
-    message: 'Czy na pewno chcesz opuścić stronę? Utracisz połączenie z sesją Planning Poker i możesz przegapić głosowanie.'
+    message: 'Are you sure you want to leave? You will lose your connection to the Planning Poker session and may miss the voting.'
   });
 
   return (

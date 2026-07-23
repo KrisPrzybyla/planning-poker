@@ -17,6 +17,7 @@ describe('Socket.IO Server (real server.js)', () => {
   let saveRoom: (room: any) => Promise<void>;
   let listRoomIds: () => Promise<string[]>;
   let deleteRoom: (roomId: string) => Promise<void>;
+  let redisClient: any;
 
   let port: number;
   const openClients: ClientSocket[] = [];
@@ -72,6 +73,7 @@ describe('Socket.IO Server (real server.js)', () => {
     saveRoom = roomStore.saveRoom;
     listRoomIds = roomStore.listRoomIds;
     deleteRoom = roomStore.deleteRoom;
+    redisClient = roomStore.client;
 
     await connectRedis();
     await new Promise<void>((resolve) => {
@@ -405,6 +407,107 @@ describe('Socket.IO Server (real server.js)', () => {
 
       const room = await getRoom(roomId);
       expect(room.currentStory.votes).toEqual([{ userId: joined.user.id, value: '5' }]);
+    });
+  });
+
+  describe('Input validation and length limits', () => {
+    it('rejects an empty user name on createRoom', async () => {
+      const client = createClient();
+      await waitFor(client, 'connect');
+      const res = await emitAck(client, 'createRoom', { userName: '   ' });
+      expect(res.success).toBe(false);
+      expect(res.error).toBe('Name is required');
+    });
+
+    it('truncates an over-long user name to the cap', async () => {
+      const client = createClient();
+      await waitFor(client, 'connect');
+      const longName = 'x'.repeat(500);
+      const res = await emitAck(client, 'createRoom', { userName: longName });
+      expect(res.success).toBe(true);
+      expect(res.user.name.length).toBe(40); // MAX_NAME_LENGTH
+    });
+
+    it('truncates an over-long story title and description', async () => {
+      const client = createClient();
+      await waitFor(client, 'connect');
+      const created = await emitAck(client, 'createRoom', { userName: 'SM' });
+      const { roomId } = created;
+
+      client.emit('startVoting', {
+        roomId,
+        story: { title: 'T'.repeat(500), description: 'D'.repeat(5000) },
+      });
+      const room = await waitForRoomState(client, (r) => r.isVotingActive === true);
+
+      expect(room.currentStory.title.length).toBe(200); // MAX_TITLE_LENGTH
+      expect(room.currentStory.description.length).toBe(2000); // MAX_DESCRIPTION_LENGTH
+    });
+  });
+
+  describe('Room key TTL', () => {
+    it('sets a positive expiry on the room key so abandoned rooms cannot live forever', async () => {
+      const client = createClient();
+      await waitFor(client, 'connect');
+      const created = await emitAck(client, 'createRoom', { userName: 'SM' });
+
+      const ttl = await redisClient.ttl(`pp:room:${created.roomId}`);
+      // -1 = no expiry, -2 = missing key. We want a real, bounded TTL.
+      expect(ttl).toBeGreaterThan(0);
+      expect(ttl).toBeLessThanOrEqual(12 * 60 * 60); // ROOM_TTL_SECONDS
+    });
+
+    it('refreshes the TTL on every write, keeping active rooms alive', async () => {
+      const client = createClient();
+      await waitFor(client, 'connect');
+      const created = await emitAck(client, 'createRoom', { userName: 'SM' });
+      const key = `pp:room:${created.roomId}`;
+
+      // Age the key artificially, then perform another write and confirm the
+      // TTL is bumped back up near the full window.
+      await redisClient.expire(key, 60);
+      expect(await redisClient.ttl(key)).toBeLessThanOrEqual(60);
+
+      client.emit('startVoting', { roomId: created.roomId, story: { title: 'S' } });
+      await waitForRoomState(client, (r) => r.isVotingActive === true);
+
+      expect(await redisClient.ttl(key)).toBeGreaterThan(60);
+    });
+  });
+
+  describe('Concurrency (room lock)', () => {
+    it('serializes simultaneous votes from different users so none are lost', async () => {
+      const sm = createClient();
+      await waitFor(sm, 'connect');
+      const created = await emitAck(sm, 'createRoom', { userName: 'SM' });
+      const { roomId } = created;
+
+      const values = ['0', '1', '2', '3', '5', '8'];
+      const participants: ClientSocket[] = [];
+      for (let i = 0; i < values.length; i++) {
+        const c = createClient();
+        await waitFor(c, 'connect');
+        await emitAck(c, 'joinRoom', { roomId, userName: `P${i}` });
+        participants.push(c);
+      }
+
+      sm.emit('startVoting', { roomId, story: { title: 'S' } });
+      await waitForRoomState(sm, (r) => r.isVotingActive === true);
+
+      // Fire every vote in the same tick — maximal read-modify-write overlap
+      // on the single room key. Without withRoomLock these would race and
+      // clobber each other, ending with fewer than N recorded votes.
+      participants.forEach((c, i) => c.emit('submitVote', { roomId, value: values[i] }));
+
+      const room = await waitForRoomState(
+        sm,
+        (r) => r.currentStory?.votes?.length === values.length,
+        4000
+      );
+      expect(room.currentStory.votes).toHaveLength(values.length);
+
+      const persisted = await getRoom(roomId);
+      expect(persisted.currentStory.votes).toHaveLength(values.length);
     });
   });
 });

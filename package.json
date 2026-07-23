@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "engines": {
-    "node": ">=20.19.0 <21 || >=22.12.0",
+    "node": ">=22.12.0",
     "npm": ">=9"
   },
   "scripts": {
@@ -16,12 +16,12 @@
     "lint": "eslint .",
     "prepare": "husky",
     "preview": "vite preview",
-    "test": "npm run test:frontend && npm run test:backend && npm run test:react && npm run test:integration",
+    "test": "npm run test:unit && npm run test:backend && npm run test:react && npm run test:integration",
     "test:ui": "vitest --ui",
     "test:run": "vitest run",
+    "test:unit": "vitest run",
     "test:coverage": "vitest run --coverage",
     "test:backend": "jest --config jest.config.cjs tests/backend",
-    "test:frontend": "node tests/frontend/utils.test.js",
     "test:react": "jest --config jest.react.config.cjs tests/react",
     "test:integration": "jest --config jest.config.cjs tests/integration",
     "docker:build": "docker build -t planning-poker .",

@@ -1,254 +1,98 @@
-const request = require('supertest');
-const { createServer } = require('http');
-const { Server } = require('socket.io');
-const Client = require('socket.io-client');
+// Integration tests for the real HTTP API exposed by server.js — not a
+// hand-rolled copy. Uses a dedicated Redis db (/14) so it can't interfere
+// with the socket suite running against /15 in a parallel Jest worker.
+// Must be set before server.js / roomStore.js are imported.
+process.env.REDIS_URL = process.env.REDIS_URL_TEST_INTEGRATION || 'redis://localhost:6379/14';
 
-// Import the Express app
-const express = require('express');
-const cors = require('cors');
+import request from 'supertest';
 
-describe('Health Check Integration Tests', () => {
+describe('HTTP API (real server.js)', () => {
   let app;
-  let server;
-  let io;
-  let clientSocket;
-  let serverSocket;
+  let connectRedis;
+  let disconnectRedis;
+  let saveRoom;
+  let deleteRoom;
+  let listRoomIds;
 
-  beforeAll((done) => {
-    // Create Express app similar to server.js
-    app = express();
-    app.use(cors());
-    app.use(express.json());
+  const makeRoom = (id, overrides = {}) => ({
+    id,
+    users: [{ id: `${id}-u1`, name: 'Alice', role: 'Scrum Master', roomId: id, isConnected: true }],
+    currentStory: null,
+    isVotingActive: false,
+    isResultsVisible: false,
+    votingCount: 0,
+    ...overrides,
+  });
 
-    // Create HTTP server
-    server = createServer(app);
-    
-    // Create Socket.IO server
-    io = new Server(server, {
-      cors: {
-        origin: "*",
-        methods: ["GET", "POST"]
-      }
+  beforeAll(async () => {
+    const serverModule = await import('../../server.js');
+    const roomStore = await import('../../roomStore.js');
+
+    app = serverModule.app;
+    connectRedis = roomStore.connectRedis;
+    disconnectRedis = roomStore.disconnectRedis;
+    saveRoom = roomStore.saveRoom;
+    deleteRoom = roomStore.deleteRoom;
+    listRoomIds = roomStore.listRoomIds;
+
+    await connectRedis();
+  });
+
+  afterAll(async () => {
+    await disconnectRedis();
+  });
+
+  afterEach(async () => {
+    const ids = await listRoomIds();
+    await Promise.all(ids.map((id) => deleteRoom(id)));
+  });
+
+  describe('GET /api/health', () => {
+    it('reports healthy with Redis active and the real payload shape', async () => {
+      const res = await request(app).get('/api/health').expect(200);
+
+      expect(res.body.status).toBe('healthy');
+      expect(res.body.services).toMatchObject({ database: 'redis', redis: 'active' });
+      expect(typeof res.body.stats.activeRooms).toBe('number');
+      expect(typeof res.body.stats.totalConnections).toBe('number');
+      expect(res.body.uptime).toBeGreaterThan(0);
     });
 
-    // Add health check endpoint
-    app.get('/api/health', (req, res) => {
-      const uptime = process.uptime();
-      const timestamp = new Date().toISOString();
-      
-      // Get stats from Socket.IO
-      const rooms = io.sockets.adapter.rooms;
-      const activeRooms = Array.from(rooms.keys()).filter(room => 
-        !io.sockets.sockets.has(room)
-      ).length;
-      const totalConnections = io.sockets.sockets.size;
+    it('reflects the actual room count read from Redis', async () => {
+      await saveRoom(makeRoom('HLTH01'));
 
-      res.json({
-        status: 'healthy',
-        timestamp,
-        uptime,
-        environment: process.env.NODE_ENV || 'test',
-        version: '1.0.0',
-        services: {
-          database: 'not_applicable',
-          socketio: 'healthy'
-        },
-        stats: {
-          activeRooms,
-          totalConnections
-        }
-      });
-    });
-
-    // Add stats endpoint
-    app.get('/api/stats', (req, res) => {
-      const rooms = io.sockets.adapter.rooms;
-      const activeRooms = Array.from(rooms.keys()).filter(room => 
-        !io.sockets.sockets.has(room)
-      ).length;
-      const totalConnections = io.sockets.sockets.size;
-
-      res.json({
-        activeRooms,
-        totalConnections,
-        timestamp: new Date().toISOString()
-      });
-    });
-
-    // Socket.IO connection handling
-    io.on('connection', (socket) => {
-      serverSocket = socket;
-      
-      socket.on('create-room', (data) => {
-        const { roomId, userName } = data;
-        socket.join(roomId);
-        socket.emit('room-created', { roomId, userName });
-      });
-
-      socket.on('join-room', (data) => {
-        const { roomId, userName } = data;
-        socket.join(roomId);
-        socket.to(roomId).emit('user-joined', { userName });
-        socket.emit('room-joined', { roomId, userName });
-      });
-
-      socket.on('disconnect', () => {
-        // Handle disconnect
-      });
-    });
-
-    server.listen(() => {
-      const port = server.address().port;
-      clientSocket = new Client(`http://localhost:${port}`);
-      clientSocket.on('connect', done);
+      const res = await request(app).get('/api/health').expect(200);
+      expect(res.body.stats.activeRooms).toBeGreaterThanOrEqual(1);
     });
   });
 
-  afterAll((done) => {
-    io.close();
-    server.close();
-    if (clientSocket.connected) {
-      clientSocket.disconnect();
-    }
-    done();
-  });
+  describe('GET /api/stats', () => {
+    it('returns the real stats shape', async () => {
+      const res = await request(app).get('/api/stats').expect(200);
 
-  describe('Health Check Endpoint', () => {
-    test('should return healthy status', async () => {
-      const response = await request(app)
-        .get('/api/health')
-        .expect(200);
+      expect(typeof res.body.activeRooms).toBe('number');
+      expect(typeof res.body.totalConnections).toBe('number');
+      expect(Array.isArray(res.body.rooms)).toBe(true);
+    });
 
-      expect(response.body).toMatchObject({
-        status: 'healthy',
-        environment: 'test',
-        version: '1.0.0',
-        services: {
-          database: 'not_applicable',
-          socketio: 'healthy'
-        }
+    it('surfaces a saved room with its derived fields', async () => {
+      await saveRoom(
+        makeRoom('HLTH02', {
+          currentStory: { id: 's1', title: 'Story', description: '', votes: [] },
+          isVotingActive: true,
+          votingCount: 1,
+        })
+      );
+
+      const res = await request(app).get('/api/stats').expect(200);
+      const room = res.body.rooms.find((r) => r.id === 'HLTH02');
+
+      expect(room).toMatchObject({
+        id: 'HLTH02',
+        userCount: 1,
+        isVotingActive: true,
+        hasStory: true,
       });
-
-      expect(response.body.timestamp).toBeDefined();
-      expect(response.body.uptime).toBeGreaterThan(0);
-      expect(response.body.stats).toMatchObject({
-        activeRooms: expect.any(Number),
-        totalConnections: expect.any(Number)
-      });
-    });
-
-    test('should return stats', async () => {
-      const response = await request(app)
-        .get('/api/stats')
-        .expect(200);
-
-      expect(response.body).toMatchObject({
-        activeRooms: expect.any(Number),
-        totalConnections: expect.any(Number),
-        timestamp: expect.any(String)
-      });
-    });
-  });
-
-  describe('Socket.IO Integration', () => {
-    test('should connect to Socket.IO server', (done) => {
-      expect(clientSocket.connected).toBe(true);
-      done();
-    });
-
-    test('should create room successfully', (done) => {
-      const roomData = {
-        roomId: 'test-room-123',
-        userName: 'Test User'
-      };
-
-      // Remove any existing listeners
-      clientSocket.off('room-created');
-      
-      clientSocket.emit('create-room', roomData);
-      
-      clientSocket.on('room-created', (data) => {
-        expect(data).toMatchObject(roomData);
-        done();
-      });
-    });
-
-    test('should join room successfully', (done) => {
-      const roomData = {
-        roomId: 'test-room-456',
-        userName: 'Test User 2'
-      };
-
-      // Remove any existing listeners
-      clientSocket.off('room-joined');
-      
-      clientSocket.emit('join-room', roomData);
-      
-      clientSocket.on('room-joined', (data) => {
-        expect(data).toMatchObject(roomData);
-        done();
-      });
-    });
-
-    test('should update stats after room operations', async () => {
-      // Create a room first
-      const roomData = {
-        roomId: 'stats-test-room',
-        userName: 'Stats Test User'
-      };
-
-      // Remove any existing listeners
-      clientSocket.off('room-created');
-      
-      clientSocket.emit('create-room', roomData);
-      
-      // Wait a bit for the room to be created
-      await new Promise(resolve => setTimeout(resolve, 100));
-
-      const response = await request(app)
-        .get('/api/stats')
-        .expect(200);
-
-      expect(response.body.totalConnections).toBeGreaterThan(0);
-    });
-  });
-
-  describe('Error Handling', () => {
-    test('should handle non-existent endpoints gracefully', async () => {
-      await request(app)
-        .get('/api/non-existent')
-        .expect(404);
-    });
-
-    test('should handle malformed requests', async () => {
-      await request(app)
-        .post('/api/health')
-        .send({ invalid: 'data' })
-        .expect(404); // POST not allowed on health endpoint
-    });
-  });
-
-  describe('Health Check Response Time', () => {
-    test('should respond to health check within reasonable time', async () => {
-      const startTime = Date.now();
-      
-      await request(app)
-        .get('/api/health')
-        .expect(200);
-      
-      const responseTime = Date.now() - startTime;
-      expect(responseTime).toBeLessThan(1000); // Should respond within 1 second
-    });
-
-    test('should respond to stats within reasonable time', async () => {
-      const startTime = Date.now();
-      
-      await request(app)
-        .get('/api/stats')
-        .expect(200);
-      
-      const responseTime = Date.now() - startTime;
-      expect(responseTime).toBeLessThan(500); // Should respond within 500ms
     });
   });
 });

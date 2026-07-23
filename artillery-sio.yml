@@ -5,21 +5,21 @@
 #       ROOM_ID=ABC123 artillery run artillery-sio.yml
 #   - Scrum master flow (creates rooms):
 #       artillery run --scenarios=scum_master_flow artillery-sio.yml
-#     (Uwaga: SM-flow nie dzieli roomId między VU, traktuj jako smoke test e2e.)
+#     (Note: SM-flow does not share roomId across VUs; treat it as an e2e smoke test.)
 
 config:
   target: "http://localhost"
 
-  # Fazy obciążenia – dopasuj do potrzeb
+  # Load phases - adjust to your needs
   phases:
-    - duration: 60   # rozgrzewka 1 min
+    - duration: 60   # warmup 1 min
       arrivalRate: 5
       name: warmup
-    - duration: 300  # 5 min narastania
+    - duration: 300  # 5 min ramp-up
       arrivalRate: 20
       rampTo: 100
       name: ramp
-    - duration: 300  # 5 min stałego obciążenia
+    - duration: 300  # 5 min sustained load
       arrivalRate: 100
       name: sustain
 
@@ -29,19 +29,19 @@ config:
   socketio:
     transports: ["websocket"]
     path: "/socket.io"
-    # secure: true # wnioskowane z https targetu
+    # secure: true # inferred from https target
 
   ensure:
-    maxErrorRate: 1 # akceptuj do 1% błędów
+    maxErrorRate: 1 # accept up to 1% errors
 
   variables:
-    # Ustaw przez środowisko: ROOM_ID=ABC123 artillery run artillery-sio.yml
+    # Set via environment: ROOM_ID=ABC123 artillery run artillery-sio.yml
     ROOM_ID: "{{ $env.ROOM_ID || '' }}"
 
 scenarios:
-  # 1) Scenariusz Scrum Master – pełny przepływ e2e dla jednego klienta
+  # 1) Scrum Master scenario - full e2e flow for a single client
   - name: scrum_master_flow
-    weight: 0 # ustaw na >0 aby włączyć w tescie mieszanym
+    weight: 0 # set to >0 to enable in a mixed test
     engine: "socketio"
     flow:
       - emit:
@@ -61,7 +61,7 @@ scenarios:
           data:
             roomId: "{{ roomId }}"
             story:
-              title: "Historia {{ $randomString() }}"
+              title: "Story {{ $randomString() }}"
               description: "Test load"
       - think: 1
       - emit:
@@ -81,12 +81,12 @@ scenarios:
           data:
             roomId: "{{ roomId }}"
 
-  # 2) Scenariusz Uczestnik – dołącz do podanego pokoju i oddaj głos
+  # 2) Participant scenario - join the given room and cast a vote
   - name: participant_flow
-    weight: 1 # główny scenariusz do obciążenia – zwiększ jeśli używasz mieszanki
+    weight: 1 # main load scenario - increase if using a mix
     engine: "socketio"
     flow:
-      # Uwaga: WYMAGANY ROOM_ID (np. ROOM_ID=ABC123)
+      # Note: ROOM_ID is REQUIRED (e.g. ROOM_ID=ABC123)
       - think: 0.5
       - emit:
           channel: "joinRoom"
@@ -105,4 +105,4 @@ scenarios:
             userId: "{{ userId }}"
             value: "5"
       - think: 3
-      # Zostawiamy klienta podłączonego – symuluje obecność na sesji
+      # Leave the client connected - simulates presence in the session

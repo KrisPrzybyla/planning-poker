@@ -1,14 +1,14 @@
 # Multi-stage Dockerfile for smaller, secure runtime image
 
 # 1) Dependencies stage (installs all deps)
-FROM node:20-alpine AS deps
+FROM node:22-alpine AS deps
 WORKDIR /app
 ENV HUSKY=0
 COPY package*.json ./
 RUN npm ci
 
 # 2) Builder stage (builds the frontend)
-FROM node:20-alpine AS builder
+FROM node:22-alpine AS builder
 WORKDIR /app
 ENV HUSKY=0
 COPY --from=deps /app/node_modules ./node_modules
@@ -16,14 +16,14 @@ COPY . .
 RUN npm run build
 
 # 3) Production deps (only production dependencies)
-FROM node:20-alpine AS prod-deps
+FROM node:22-alpine AS prod-deps
 WORKDIR /app
 ENV HUSKY=0
 COPY package*.json ./
 RUN npm ci --omit=dev --ignore-scripts
 
 # 4) Final runtime image (non-root)
-FROM node:20-alpine
+FROM node:22-alpine
 
 # Install curl for health checks
 RUN apk add --no-cache curl

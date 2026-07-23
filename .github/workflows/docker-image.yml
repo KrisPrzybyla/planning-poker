@@ -14,8 +14,9 @@ jobs:
     permissions:
       contents: read
     services:
-      # Backend tests exercise the real server.js against Redis (room state
-      # storage) instead of a duplicated in-memory copy of the server logic.
+      # Backend + integration tests exercise the real server.js against Redis
+      # (room state storage) instead of a duplicated in-memory copy. Vitest
+      # unit tests (votingUtils) run in the same `npm test` and need no Redis.
       redis:
         image: redis:7-alpine
         ports:
@@ -29,11 +30,11 @@ jobs:
       - name: Check out the repo
         uses: actions/checkout@v4
 
-      # Bramką testowa: instalacja zależności i testy przed buildem obrazu
+      # Test gate: install dependencies and run tests before building the image
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'npm'
 
       - name: Install dependencies
