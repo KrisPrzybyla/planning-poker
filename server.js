@@ -578,7 +578,7 @@ io.on('connection', (socket) => {
   });
 
   // Handle disconnection
-  socket.on('disconnect', () => {
+  socket.on('disconnect', (reason) => {
     try {
       const userId = socket.data.userId;
       const roomId = socket.data.roomId;
@@ -590,7 +590,7 @@ io.on('connection', (socket) => {
         const userIndex = room.users.findIndex((u) => u.id === userId);
         if (userIndex !== -1) {
           const user = room.users[userIndex];
-          logger.info('User disconnected from room', { roomId, userName: user?.name });
+          logger.info('User disconnected from room', { roomId, userName: user?.name, reason });
 
           // Mark user as disconnected but don't remove immediately
           user.isConnected = false;
@@ -688,7 +688,7 @@ io.on('connection', (socket) => {
         }
       }
 
-      logger.info('Socket disconnected', { socketId: socket.id });
+      logger.info('Socket disconnected', { socketId: socket.id, reason });
     } catch (error) {
       logger.error('Error handling disconnect', { error: error instanceof Error ? { message: error.message, stack: error.stack } : error });
     }
