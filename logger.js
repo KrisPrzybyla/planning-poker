@@ -23,6 +23,11 @@ const errLogPath = path.join(LOG_DIR, 'error.log');
 const appStream = fs.createWriteStream(appLogPath, { flags: 'a' });
 const errStream = fs.createWriteStream(errLogPath, { flags: 'a' });
 
+// Prevent an unhandled 'error' on a file stream (e.g. disk full, permission
+// denied) from crashing the process and taking console logging down with it.
+appStream.on('error', (err) => console.error('logger: app.log write failed', err));
+errStream.on('error', (err) => console.error('logger: error.log write failed', err));
+
 const levels = { error: 0, warn: 1, info: 2, debug: 3 };
 
 function serializeMeta(meta) {

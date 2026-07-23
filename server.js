@@ -313,6 +313,7 @@ io.on('connection', (socket) => {
     try {
       // Check if room exists
       if (!rooms.has(roomId)) {
+        logger.warn('Rejoin failed: room not found', { roomId, userId });
         callback({ success: false, error: 'Room not found' });
         return;
       }
@@ -322,6 +323,7 @@ io.on('connection', (socket) => {
       // Check if user exists in room
       const user = room.users.find((u) => u.id === userId);
       if (!user) {
+        logger.warn('Rejoin failed: user not found in room', { roomId, userId });
         callback({ success: false, error: 'User not found in room' });
         return;
       }
