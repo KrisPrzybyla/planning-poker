@@ -26,15 +26,19 @@ interface UseHealthCheckOptions {
 // Use environment variable or default URL
 const getBackendUrl = () => {
   // Check for environment variable (works in both test and build environments)
-  if (typeof process !== 'undefined' && (process as any).env?.VITE_BACKEND_URL) {
-    return (process as any).env.VITE_BACKEND_URL as string;
+  const proc =
+    typeof process !== 'undefined'
+      ? (process as { env?: Record<string, string | undefined> })
+      : undefined;
+  if (proc?.env?.VITE_BACKEND_URL) {
+    return proc.env.VITE_BACKEND_URL;
   }
-  
+
   // In production/Docker, use the same host as the current page
   if (typeof window !== 'undefined') {
     return `${window.location.protocol}//${window.location.host}`;
   }
-  
+
   // Default fallback URL for development
   return 'http://127.0.0.1:3000';
 };
@@ -52,7 +56,7 @@ export const useHealthCheck = (options: UseHealthCheckOptions = {}) => {
   } = options;
 
   const [healthStatus, setHealthStatus] = useState<HealthStatus>({
-    status: 'checking'
+    status: 'checking',
   });
 
   const isMountedRef = useRef(true);
@@ -109,7 +113,7 @@ export const useHealthCheck = (options: UseHealthCheckOptions = {}) => {
         timestamp: data.timestamp,
         uptime: data.uptime,
         stats: data.stats,
-        lastChecked: new Date().toISOString()
+        lastChecked: new Date().toISOString(),
       };
 
       return status;
@@ -117,60 +121,68 @@ export const useHealthCheck = (options: UseHealthCheckOptions = {}) => {
       const status: HealthStatus = {
         status: 'unhealthy',
         error: error instanceof Error ? error.message : 'Unknown error',
-        lastChecked: new Date().toISOString()
+        lastChecked: new Date().toISOString(),
       };
 
       return status;
     }
   }, [timeoutMs, retryOnce]);
 
-  const emitIfChanged = useCallback((next: HealthStatus) => {
-    const prev = lastEmittedStatusRef.current;
-    if (next.status !== prev) {
-      lastEmittedStatusRef.current = next.status;
-      if (onStatusChange) onStatusChange(next);
-    }
-  }, [onStatusChange]);
-
-  const performHealthCheck = useCallback(async (force = false) => {
-    if ((!enabled && !force) || !isMountedRef.current) return;
-
-    // Update UI to checking, but do not emit change notification here
-    setHealthStatus((prev) => ({ ...prev, status: 'checking' }));
-
-    const raw = await rawHealthProbe();
-    if (!isMountedRef.current) return;
-
-    let effective: HealthStatus = raw;
-
-    if (raw.status === 'healthy') {
-      consecutiveSuccessesRef.current += 1;
-      consecutiveFailuresRef.current = 0;
-
-      const shouldEmitHealthy = consecutiveSuccessesRef.current >= successThreshold || lastEmittedStatusRef.current === 'checking';
-      if (shouldEmitHealthy) {
-        effective = raw; // healthy
-      } else {
-        // keep current emitted status (likely unhealthy) until success threshold reached
-        effective = { ...raw, status: lastEmittedStatusRef.current } as HealthStatus;
+  const emitIfChanged = useCallback(
+    (next: HealthStatus) => {
+      const prev = lastEmittedStatusRef.current;
+      if (next.status !== prev) {
+        lastEmittedStatusRef.current = next.status;
+        if (onStatusChange) onStatusChange(next);
       }
-    } else {
-      // unhealthy raw
-      consecutiveFailuresRef.current += 1;
-      consecutiveSuccessesRef.current = 0;
+    },
+    [onStatusChange]
+  );
 
-      if (consecutiveFailuresRef.current >= failureThreshold) {
-        effective = raw; // unhealthy
+  const performHealthCheck = useCallback(
+    async (force = false) => {
+      if ((!enabled && !force) || !isMountedRef.current) return;
+
+      // Update UI to checking, but do not emit change notification here
+      setHealthStatus((prev) => ({ ...prev, status: 'checking' }));
+
+      const raw = await rawHealthProbe();
+      if (!isMountedRef.current) return;
+
+      let effective: HealthStatus = raw;
+
+      if (raw.status === 'healthy') {
+        consecutiveSuccessesRef.current += 1;
+        consecutiveFailuresRef.current = 0;
+
+        const shouldEmitHealthy =
+          consecutiveSuccessesRef.current >= successThreshold ||
+          lastEmittedStatusRef.current === 'checking';
+        if (shouldEmitHealthy) {
+          effective = raw; // healthy
+        } else {
+          // keep current emitted status (likely unhealthy) until success threshold reached
+          effective = { ...raw, status: lastEmittedStatusRef.current } as HealthStatus;
+        }
       } else {
-        // keep current status (healthy/checking) until failures threshold reached
-        effective = { ...raw, status: lastEmittedStatusRef.current } as HealthStatus;
-      }
-    }
+        // unhealthy raw
+        consecutiveFailuresRef.current += 1;
+        consecutiveSuccessesRef.current = 0;
 
-    // Update state
-    setHealthStatus(effective);
-    emitIfChanged(effective);
-  }, [enabled, rawHealthProbe, emitIfChanged, successThreshold, failureThreshold]);
+        if (consecutiveFailuresRef.current >= failureThreshold) {
+          effective = raw; // unhealthy
+        } else {
+          // keep current status (healthy/checking) until failures threshold reached
+          effective = { ...raw, status: lastEmittedStatusRef.current } as HealthStatus;
+        }
+      }
+
+      // Update state
+      setHealthStatus(effective);
+      emitIfChanged(effective);
+    },
+    [enabled, rawHealthProbe, emitIfChanged, successThreshold, failureThreshold]
+  );
 
   useEffect(() => {
     if (!enabled) return;
@@ -198,7 +210,7 @@ export const useHealthCheck = (options: UseHealthCheckOptions = {}) => {
     isUnhealthy: healthStatus.status === 'unhealthy',
     isChecking: healthStatus.status === 'checking',
     manualCheck,
-    lastChecked: healthStatus.lastChecked
+    lastChecked: healthStatus.lastChecked,
   };
 };
 
