@@ -1,10 +1,9 @@
 {
   "*.{js,jsx,ts,tsx}": [
     "eslint --fix",
+    "prettier --write",
     "npm run test:react -- --passWithNoTests",
     "npm run test:backend -- --passWithNoTests"
   ],
-  "*.{json,md}": [
-    "prettier --write"
-  ]
+  "*.{json,md}": ["prettier --write"]
 }

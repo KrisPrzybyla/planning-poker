@@ -9,27 +9,18 @@ module.exports = {
     'eslint:recommended',
     'plugin:@typescript-eslint/recommended',
     'plugin:react-hooks/recommended',
+    'prettier', // must be last: disables ESLint rules that conflict with Prettier
   ],
-  ignorePatterns: ['dist', '.eslintrc.cjs', 'mysql-config.example.js'],
+  ignorePatterns: ['dist', '.eslintrc.cjs'],
   parser: '@typescript-eslint/parser',
   plugins: ['react-refresh'],
   rules: {
-    'react-refresh/only-export-components': [
-      'warn',
-      { allowConstantExport: true },
-    ],
+    'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
   },
   overrides: [
     // Node/server files
     {
-      files: [
-        'server.js',
-        'server-*.js',
-        'server-mysql.js',
-        'server-optimized.js',
-        'logger.js',
-        'roomStore.js',
-      ],
+      files: ['server.js', 'logger.js', 'roomStore.js'],
       env: { node: true, browser: false },
       parserOptions: {
         ecmaVersion: 'latest',
@@ -49,10 +40,7 @@ module.exports = {
     },
     // Tests (TS/JS)
     {
-      files: [
-        'tests/**/*.{ts,tsx,js,jsx}',
-        'src/test/**/*.{ts,tsx,js,jsx}',
-      ],
+      files: ['tests/**/*.{ts,tsx,js,jsx}', 'src/test/**/*.{ts,tsx,js,jsx}'],
       env: { jest: true, node: true },
       rules: {
         '@typescript-eslint/no-explicit-any': 'off',
