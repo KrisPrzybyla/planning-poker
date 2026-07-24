@@ -1,21 +1,54 @@
-version: '3.8'
-
 services:
+  redis:
+    image: redis:7-alpine
+    container_name: planning-poker-redis
+    # Append-only persistence so active rooms survive a Redis restart, matching
+    # the app's Redis-backed room store (roomStore.js).
+    command: ['redis-server', '--appendonly', 'yes']
+    restart: unless-stopped
+    volumes:
+      - redis-data:/data
+    networks:
+      - poker_net
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+
   planning-poker:
     build: .
     ports:
-      - "80:3000"
+      - '80:3000'
     environment:
       - NODE_ENV=production
       - PORT=3000
+      # server.js exits with code 1 if Redis is unreachable at startup, so this
+      # must point at the redis service (not the default localhost).
+      - REDIS_URL=redis://redis:6379
       - TRUST_PROXY=true
       - API_RATE_WINDOW_MS=60000
       - API_RATE_MAX=180
     restart: unless-stopped
     container_name: planning-poker-app
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - poker_net
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      test: ['CMD', 'curl', '-f', 'http://localhost:3000/api/health']
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
+
+# Dedicated bridge network for poker <-> redis TCP. A shared reverse-proxy
+# network is not enough on its own for inter-container traffic here.
+networks:
+  poker_net:
+    driver: bridge
+
+volumes:
+  redis-data:

@@ -34,10 +34,6 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 
-# Low-memory profile support
-ARG LOW_MEMORY=false
-ENV LOW_MEMORY=$LOW_MEMORY
-
 # Build-time metadata
 ARG BUILD_DATE
 ARG VCS_REF
@@ -47,32 +43,6 @@ LABEL org.opencontainers.image.created=$BUILD_DATE \
       org.opencontainers.image.revision=$VCS_REF \
       org.opencontainers.image.version=$VERSION \
       org.opencontainers.image.source=$REPO_URL
-
-# Apply low-memory defaults if requested
-RUN if [ "$LOW_MEMORY" = "true" ]; then \
-      echo "Enabling low-memory profile" && \
-      export NODE_OPTIONS=--max-old-space-size=128 && \
-      export UV_THREADPOOL_SIZE=1 && \
-      export NODE_NO_WARNINGS=1 && \
-      export LOG_LEVEL=warn && \
-      export LOG_TO_CONSOLE=false && \
-      export ACCESS_LOG_ENABLED=true && \
-      export ACCESS_LOG_ERRORS_ONLY=true && \
-      export ACCESS_LOG_SAMPLE=10 && \
-      export ACCESS_LOG_SLOW_MS=0 && \
-      echo "Applied low-memory env defaults" ; \
-    fi
-
-# Ensure envs are persisted (can be overridden at runtime)
-ENV NODE_OPTIONS=${NODE_OPTIONS}
-ENV UV_THREADPOOL_SIZE=${UV_THREADPOOL_SIZE}
-ENV NODE_NO_WARNINGS=${NODE_NO_WARNINGS}
-ENV LOG_LEVEL=${LOG_LEVEL}
-ENV LOG_TO_CONSOLE=${LOG_TO_CONSOLE}
-ENV ACCESS_LOG_ENABLED=${ACCESS_LOG_ENABLED}
-ENV ACCESS_LOG_ERRORS_ONLY=${ACCESS_LOG_ERRORS_ONLY}
-ENV ACCESS_LOG_SAMPLE=${ACCESS_LOG_SAMPLE}
-ENV ACCESS_LOG_SLOW_MS=${ACCESS_LOG_SLOW_MS}
 
 # Copy only what's needed to run
 COPY --from=prod-deps /app/node_modules ./node_modules

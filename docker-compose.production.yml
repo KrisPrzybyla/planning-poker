@@ -1,13 +1,45 @@
-version: '3.8'
-
 services:
+  redis:
+    image: redis:7-alpine
+    container_name: planning-poker-redis
+    # Append-only persistence so active rooms survive a Redis restart.
+    # noeviction: never silently drop room keys when memory is tight — reject
+    # writes instead, so a full Redis is loud rather than corrupting sessions.
+    command:
+      - 'redis-server'
+      - '--appendonly'
+      - 'yes'
+      - '--maxmemory'
+      - '64mb'
+      - '--maxmemory-policy'
+      - 'noeviction'
+    restart: unless-stopped
+    volumes:
+      - redis-data:/data
+    networks:
+      - poker_net
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 96M
+
   planning-poker:
-    image: krzprzybyla/poker-planning:lowmem
+    # Built from the default Dockerfile (see .github/workflows/docker-image.yml);
+    # runs server.js and needs Redis.
+    image: krzprzybyla/poker-planning:latest
     container_name: planning-poker-app
     restart: unless-stopped
     ports:
-      - "80:3000"
+      - '80:3000'
     environment:
+      - REDIS_URL=redis://redis:6379
       - LOG_DIR=/logs
       - LOG_LEVEL=warn
       - LOG_TO_CONSOLE=false
@@ -20,8 +52,22 @@ services:
       - API_RATE_MAX=180
     volumes:
       - /var/log/poker-planning:/logs
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - poker_net
     deploy:
       resources:
         limits:
           cpus: '0.5'
           memory: 256M
+
+# Dedicated bridge network for poker <-> redis TCP. A shared reverse-proxy
+# network is not enough on its own for inter-container traffic here.
+networks:
+  poker_net:
+    driver: bridge
+
+volumes:
+  redis-data:
