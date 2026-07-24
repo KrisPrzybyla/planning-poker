@@ -25,10 +25,12 @@ const currentFilename = fileURLToPath(import.meta.url);
 const currentDirname = path.dirname(currentFilename);
 
 const app = express();
-app.use(cors({
-  origin: process.env.NODE_ENV === 'production' ? (process.env.CORS_ORIGIN || false) : '*',
-  credentials: false
-}));
+app.use(
+  cors({
+    origin: process.env.NODE_ENV === 'production' ? process.env.CORS_ORIGIN || false : '*',
+    credentials: false,
+  })
+);
 app.use(express.json());
 
 // Access log (errors-only by default) with sampling and health exclusion
@@ -70,7 +72,7 @@ app.use('/api', (req, res, next) => {
       status,
       durationMs: Math.round(durationMs),
       ip,
-      userAgent: req.headers['user-agent']
+      userAgent: req.headers['user-agent'],
     });
   });
 
@@ -125,12 +127,12 @@ app.get('/api/health', async (req, res) => {
       database: 'redis',
       redis: redisStatus,
       socketio: 'active',
-      express: 'active'
+      express: 'active',
     },
     stats: {
       activeRooms,
-      totalConnections: io.engine.clientsCount
-    }
+      totalConnections: io.engine.clientsCount,
+    },
   };
 
   res.status(healthy ? 200 : 503).json(healthStatus);
@@ -140,21 +142,25 @@ app.get('/api/health', async (req, res) => {
 app.get('/api/stats', async (req, res) => {
   try {
     const roomIds = await listRoomIds();
-    const roomsData = (await Promise.all(roomIds.map(async (id) => {
-      const room = await getRoom(id);
-      if (!room) return null;
-      return {
-        id,
-        userCount: room.users.length,
-        isVotingActive: room.isVotingActive,
-        hasStory: !!room.currentStory
-      };
-    }))).filter(Boolean);
+    const roomsData = (
+      await Promise.all(
+        roomIds.map(async (id) => {
+          const room = await getRoom(id);
+          if (!room) return null;
+          return {
+            id,
+            userCount: room.users.length,
+            isVotingActive: room.isVotingActive,
+            hasStory: !!room.currentStory,
+          };
+        })
+      )
+    ).filter(Boolean);
 
     res.status(200).json({
       activeRooms: roomIds.length,
       totalConnections: io.engine.clientsCount,
-      rooms: roomsData
+      rooms: roomsData,
     });
   } catch (error) {
     logger.error('Stats endpoint: Redis unreachable', { message: error?.message });
@@ -163,28 +169,30 @@ app.get('/api/stats', async (req, res) => {
 });
 
 // Serve static files from the dist directory with cache headers optimized for Cloudflare
-app.use(express.static(path.join(currentDirname, 'dist'), {
-  setHeaders: (res, filePath) => {
-    const rel = filePath.replace(path.join(currentDirname, 'dist'), '');
-    // HTML: never cache (always revalidate)
-    if (rel.endsWith('.html') || rel === '' || rel === '/' || rel === '/index.html') {
-      res.setHeader('Cache-Control', 'no-cache, max-age=0, must-revalidate');
-      return;
-    }
-    // Fingerprinted static assets (Vite: dist/assets/*-<hash>.<ext>)
-    if (rel.startsWith('/assets/')) {
-      res.setHeader('Cache-Control', 'public, max-age=31536000, s-maxage=31536000, immutable');
-      return;
-    }
-    // Other static files: short cache (safe default)
-    res.setHeader('Cache-Control', 'public, max-age=300');
-  }
-}));
+app.use(
+  express.static(path.join(currentDirname, 'dist'), {
+    setHeaders: (res, filePath) => {
+      const rel = filePath.replace(path.join(currentDirname, 'dist'), '');
+      // HTML: never cache (always revalidate)
+      if (rel.endsWith('.html') || rel === '' || rel === '/' || rel === '/index.html') {
+        res.setHeader('Cache-Control', 'no-cache, max-age=0, must-revalidate');
+        return;
+      }
+      // Fingerprinted static assets (Vite: dist/assets/*-<hash>.<ext>)
+      if (rel.startsWith('/assets/')) {
+        res.setHeader('Cache-Control', 'public, max-age=31536000, s-maxage=31536000, immutable');
+        return;
+      }
+      // Other static files: short cache (safe default)
+      res.setHeader('Cache-Control', 'public, max-age=300');
+    },
+  })
+);
 
 const server = createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: process.env.NODE_ENV === 'production' ? (process.env.CORS_ORIGIN || false) : '*',
+    origin: process.env.NODE_ENV === 'production' ? process.env.CORS_ORIGIN || false : '*',
     methods: ['GET', 'POST'],
   },
 });
@@ -215,7 +223,9 @@ const MAX_DESCRIPTION_LENGTH = 2000;
 // Coerce to string, trim, and hard-cap length. Sanitizing (rather than
 // rejecting) keeps the UX forgiving while bounding what we persist/broadcast.
 function sanitizeText(value, maxLength) {
-  return String(value ?? '').trim().slice(0, maxLength);
+  return String(value ?? '')
+    .trim()
+    .slice(0, maxLength);
 }
 
 // Generate a random 6-character room code
@@ -304,7 +314,9 @@ async function runPresenceSweep() {
             return;
           }
 
-          if (['Scrum Master', 'Displaced Scrum Master', 'Temporary Scrum Master'].includes(user.role)) {
+          if (
+            ['Scrum Master', 'Displaced Scrum Master', 'Temporary Scrum Master'].includes(user.role)
+          ) {
             const promoted = room.users.find((u) => u.isConnected);
             if (promoted) {
               promoted.role = 'Scrum Master';
@@ -445,7 +457,9 @@ io.on('connection', (socket) => {
         logger.info('Voting started', { roomId, storyTitle: room.currentStory.title });
       }
     } catch (error) {
-      logger.error('Error creating room', { error: error instanceof Error ? { message: error.message, stack: error.stack } : error });
+      logger.error('Error creating room', {
+        error: error instanceof Error ? { message: error.message, stack: error.stack } : error,
+      });
       ack({ success: false, error: 'Failed to create room' });
     }
   });
@@ -491,7 +505,9 @@ io.on('connection', (socket) => {
         logger.info('User joined room', { roomId, userName });
       });
     } catch (error) {
-      logger.error('Error joining room', { error: error instanceof Error ? { message: error.message, stack: error.stack } : error });
+      logger.error('Error joining room', {
+        error: error instanceof Error ? { message: error.message, stack: error.stack } : error,
+      });
       ack({ success: false, error: 'Failed to join room' });
     }
   });
@@ -527,7 +543,10 @@ io.on('connection', (socket) => {
           const tempSM = room.users.find((u) => u.role === 'Temporary Scrum Master');
           if (tempSM) {
             tempSM.role = 'Participant';
-            logger.info('Temporary Scrum Master demoted to Participant', { roomId, userName: tempSM.name });
+            logger.info('Temporary Scrum Master demoted to Participant', {
+              roomId,
+              userName: tempSM.name,
+            });
           }
 
           user.role = 'Scrum Master';
@@ -556,7 +575,9 @@ io.on('connection', (socket) => {
         logger.info('User rejoined room', { roomId, userName: user?.name });
       });
     } catch (error) {
-      logger.error('Error rejoining room', { error: error instanceof Error ? { message: error.message, stack: error.stack } : error });
+      logger.error('Error rejoining room', {
+        error: error instanceof Error ? { message: error.message, stack: error.stack } : error,
+      });
       ack({ success: false, error: 'Failed to rejoin room' });
     }
   });
@@ -570,7 +591,8 @@ io.on('connection', (socket) => {
 
         const userId = socket.data.userId;
         const user = room.users.find((u) => u.id === userId);
-        if (!user || (user.role !== 'Scrum Master' && user.role !== 'Temporary Scrum Master')) return;
+        if (!user || (user.role !== 'Scrum Master' && user.role !== 'Temporary Scrum Master'))
+          return;
 
         room.votingCount = (room.votingCount || 0) + 1;
         const title = sanitizeText(story.title, MAX_TITLE_LENGTH);
@@ -591,7 +613,9 @@ io.on('connection', (socket) => {
         logger.info('Voting started', { roomId, storyTitle });
       });
     } catch (error) {
-      logger.error('Error starting voting', { error: error instanceof Error ? { message: error.message, stack: error.stack } : error });
+      logger.error('Error starting voting', {
+        error: error instanceof Error ? { message: error.message, stack: error.stack } : error,
+      });
     }
   });
 
@@ -626,7 +650,9 @@ io.on('connection', (socket) => {
         logger.info('Vote submitted', { roomId, userId, value: valueStr });
       });
     } catch (error) {
-      logger.error('Error submitting vote', { error: error instanceof Error ? { message: error.message, stack: error.stack } : error });
+      logger.error('Error submitting vote', {
+        error: error instanceof Error ? { message: error.message, stack: error.stack } : error,
+      });
     }
   });
 
@@ -639,7 +665,8 @@ io.on('connection', (socket) => {
 
         const userId = socket.data.userId;
         const user = room.users.find((u) => u.id === userId);
-        if (!user || (user.role !== 'Scrum Master' && user.role !== 'Temporary Scrum Master')) return;
+        if (!user || (user.role !== 'Scrum Master' && user.role !== 'Temporary Scrum Master'))
+          return;
 
         room.isResultsVisible = true;
 
@@ -649,7 +676,9 @@ io.on('connection', (socket) => {
         logger.info('Results revealed', { roomId });
       });
     } catch (error) {
-      logger.error('Error revealing results', { error: error instanceof Error ? { message: error.message, stack: error.stack } : error });
+      logger.error('Error revealing results', {
+        error: error instanceof Error ? { message: error.message, stack: error.stack } : error,
+      });
     }
   });
 
@@ -662,7 +691,8 @@ io.on('connection', (socket) => {
 
         const userId = socket.data.userId;
         const user = room.users.find((u) => u.id === userId);
-        if (!user || (user.role !== 'Scrum Master' && user.role !== 'Temporary Scrum Master')) return;
+        if (!user || (user.role !== 'Scrum Master' && user.role !== 'Temporary Scrum Master'))
+          return;
 
         if (room.currentStory) {
           room.currentStory.votes = [];
@@ -676,7 +706,9 @@ io.on('connection', (socket) => {
         logger.info('Voting reset', { roomId });
       });
     } catch (error) {
-      logger.error('Error resetting voting', { error: error instanceof Error ? { message: error.message, stack: error.stack } : error });
+      logger.error('Error resetting voting', {
+        error: error instanceof Error ? { message: error.message, stack: error.stack } : error,
+      });
     }
   });
 
@@ -688,7 +720,8 @@ io.on('connection', (socket) => {
         if (!room) return;
 
         const user = room.users.find((u) => u.id === socket.data.userId);
-        if (!user || (user.role !== 'Scrum Master' && user.role !== 'Temporary Scrum Master')) return;
+        if (!user || (user.role !== 'Scrum Master' && user.role !== 'Temporary Scrum Master'))
+          return;
 
         io.to(roomId).emit('sessionEnded');
         room.users.forEach((u) => activeSockets.delete(u.id));
@@ -696,7 +729,9 @@ io.on('connection', (socket) => {
         logger.info('Session ended', { roomId });
       });
     } catch (error) {
-      logger.error('Error ending session', { error: error instanceof Error ? { message: error.message, stack: error.stack } : error });
+      logger.error('Error ending session', {
+        error: error instanceof Error ? { message: error.message, stack: error.stack } : error,
+      });
     }
   });
 
@@ -714,7 +749,11 @@ io.on('connection', (socket) => {
 
         const requestingUserId = socket.data.userId;
         const requestingUser = room.users.find((u) => u.id === requestingUserId);
-        if (!requestingUser || (requestingUser.role !== 'Scrum Master' && requestingUser.role !== 'Temporary Scrum Master')) {
+        if (
+          !requestingUser ||
+          (requestingUser.role !== 'Scrum Master' &&
+            requestingUser.role !== 'Temporary Scrum Master')
+        ) {
           ack({ success: false, error: 'Only Scrum Master can remove users' });
           return;
         }
@@ -727,7 +766,10 @@ io.on('connection', (socket) => {
 
         const userToRemove = room.users[userToRemoveIndex];
 
-        if (userToRemove.role === 'Scrum Master' || userToRemove.role === 'Temporary Scrum Master') {
+        if (
+          userToRemove.role === 'Scrum Master' ||
+          userToRemove.role === 'Temporary Scrum Master'
+        ) {
           ack({ success: false, error: 'Cannot remove Scrum Master' });
           return;
         }
@@ -736,7 +778,9 @@ io.on('connection', (socket) => {
         activeSockets.delete(userToRemove.id);
 
         if (room.currentStory) {
-          room.currentStory.votes = room.currentStory.votes.filter((vote) => vote.userId !== userIdToRemove);
+          room.currentStory.votes = room.currentStory.votes.filter(
+            (vote) => vote.userId !== userIdToRemove
+          );
         }
 
         await saveRoom(room);
@@ -752,10 +796,16 @@ io.on('connection', (socket) => {
         io.to(roomId).emit('roomUpdated', room);
 
         ack({ success: true });
-        logger.info('User removed', { roomId, removedUser: userToRemove?.name, by: requestingUser?.name });
+        logger.info('User removed', {
+          roomId,
+          removedUser: userToRemove?.name,
+          by: requestingUser?.name,
+        });
       });
     } catch (error) {
-      logger.error('Error removing user', { error: error instanceof Error ? { message: error.message, stack: error.stack } : error });
+      logger.error('Error removing user', {
+        error: error instanceof Error ? { message: error.message, stack: error.stack } : error,
+      });
       ack({ success: false, error: 'Failed to remove user' });
     }
   });
@@ -773,7 +823,12 @@ io.on('connection', (socket) => {
       // room disappearing while the user's (new) connection was never
       // actually gone.
       if (userId && activeSockets.get(userId) !== socket.id) {
-        logger.info('Ignoring stale disconnect (superseded by newer connection)', { roomId, userId, socketId: socket.id, reason });
+        logger.info('Ignoring stale disconnect (superseded by newer connection)', {
+          roomId,
+          userId,
+          socketId: socket.id,
+          reason,
+        });
         return;
       }
       if (userId) activeSockets.delete(userId);
@@ -810,7 +865,9 @@ io.on('connection', (socket) => {
 
       logger.info('Socket disconnected', { socketId: socket.id, reason });
     } catch (error) {
-      logger.error('Error handling disconnect', { error: error instanceof Error ? { message: error.message, stack: error.stack } : error });
+      logger.error('Error handling disconnect', {
+        error: error instanceof Error ? { message: error.message, stack: error.stack } : error,
+      });
     }
   });
 });
@@ -901,4 +958,13 @@ if (isMainModule) {
   process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 }
 
-export { app, server, io, start, gracefulShutdown, runPresenceSweep, reconcileOnStartup, activeSockets };
+export {
+  app,
+  server,
+  io,
+  start,
+  gracefulShutdown,
+  runPresenceSweep,
+  reconcileOnStartup,
+  activeSockets,
+};

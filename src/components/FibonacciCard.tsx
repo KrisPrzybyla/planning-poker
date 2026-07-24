@@ -50,7 +50,6 @@ const FibonacciCard: React.FC<FibonacciCardProps> = ({
         position="relative"
         overflow="hidden"
       >
-  
         <Text fontSize="2xl" fontWeight="bold">
           {value}
         </Text>

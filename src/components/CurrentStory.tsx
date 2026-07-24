@@ -1,10 +1,4 @@
-import {
-  Box,
-  Text,
-  Heading,
-  Badge,
-  Flex,
-} from '@chakra-ui/react';
+import { Box, Text, Heading, Badge, Flex } from '@chakra-ui/react';
 import { Story } from '../types';
 
 interface CurrentStoryProps {

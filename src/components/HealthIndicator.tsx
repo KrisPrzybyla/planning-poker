@@ -9,10 +9,16 @@ import {
   Collapse,
   VStack,
   HStack,
-  Divider
+  Divider,
 } from '@chakra-ui/react';
 import { useState, useRef, useCallback } from 'react';
-import { CheckIcon, WarningIcon, RepeatIcon, ChevronDownIcon, ChevronUpIcon } from '@chakra-ui/icons';
+import {
+  CheckIcon,
+  WarningIcon,
+  RepeatIcon,
+  ChevronDownIcon,
+  ChevronUpIcon,
+} from '@chakra-ui/icons';
 import { useHealthCheck, HealthStatus } from '../hooks/useHealthCheck';
 
 interface HealthIndicatorProps {
@@ -28,30 +34,35 @@ const HealthIndicator = ({ position = 'fixed', showDetails = false }: HealthIndi
   const toastShownRef = useRef<boolean>(false);
   const stableConnectionTimer = useRef<NodeJS.Timeout | null>(null);
 
-  const handleStatusChange = useCallback((status: HealthStatus) => {
-    const previousStatus = previousStatusRef.current;
-    
-    // Show indicator only when there are connection issues (avoid showing during 'checking')
-    if (status.status === 'unhealthy') {
-      setIsVisible(true);
-      // Clear any existing timer
-      if (stableConnectionTimer.current) {
-        clearTimeout(stableConnectionTimer.current);
-        stableConnectionTimer.current = null;
+  const handleStatusChange = useCallback(
+    (status: HealthStatus) => {
+      const previousStatus = previousStatusRef.current;
+
+      // Show indicator only when there are connection issues (avoid showing during 'checking')
+      if (status.status === 'unhealthy') {
+        setIsVisible(true);
+        // Clear any existing timer
+        if (stableConnectionTimer.current) {
+          clearTimeout(stableConnectionTimer.current);
+          stableConnectionTimer.current = null;
+        }
       }
-    }
-    
-    // Show toast notification only when status actually changes
-    if (status.status === 'unhealthy' && previousStatus !== 'unhealthy') {
-      toast({
-        title: 'Backend Connection Lost',
-        description: 'Unable to connect to the server. Some features may not work properly.',
-        status: 'error',
-        duration: 5000,
-        isClosable: true,
-        position: 'top-right'
-      });
-    } else if (status.status === 'healthy' && previousStatus === 'unhealthy' && !toastShownRef.current) {
+
+      // Show toast notification only when status actually changes
+      if (status.status === 'unhealthy' && previousStatus !== 'unhealthy') {
+        toast({
+          title: 'Backend Connection Lost',
+          description: 'Unable to connect to the server. Some features may not work properly.',
+          status: 'error',
+          duration: 5000,
+          isClosable: true,
+          position: 'top-right',
+        });
+      } else if (
+        status.status === 'healthy' &&
+        previousStatus === 'unhealthy' &&
+        !toastShownRef.current
+      ) {
         // Show success toast when connection is restored (only once)
         toastShownRef.current = true;
         toast({
@@ -60,41 +71,44 @@ const HealthIndicator = ({ position = 'fixed', showDetails = false }: HealthIndi
           status: 'success',
           duration: 10000,
           isClosable: true,
-          position: 'top-right'
+          position: 'top-right',
         });
-        
+
         // Reset the flag after toast duration
         setTimeout(() => {
           toastShownRef.current = false;
         }, 10000);
       }
-    
-    // Auto-hide indicator after 30 seconds of stable connection
-    if (status.status === 'healthy') {
-      // Clear any existing timer
-      if (stableConnectionTimer.current) {
-        clearTimeout(stableConnectionTimer.current);
-      }
-      
-      // Set new timer to hide indicator after 30 seconds
-      stableConnectionTimer.current = setTimeout(() => {
-        setIsVisible(false);
-      }, 30000);
-    }
-    
-    // Update the previous status
-    previousStatusRef.current = status.status;
-  }, [toast]);
 
-  const { healthStatus, isHealthy, isUnhealthy, isChecking, manualCheck, lastChecked } = useHealthCheck({
-    interval: 15000, // Less frequent by default
-    enabled: true,
-    onStatusChange: handleStatusChange,
-    failureThreshold: 2,
-    successThreshold: 1,
-    timeoutMs: 8000,
-    retryOnce: true,
-  });
+      // Auto-hide indicator after 30 seconds of stable connection
+      if (status.status === 'healthy') {
+        // Clear any existing timer
+        if (stableConnectionTimer.current) {
+          clearTimeout(stableConnectionTimer.current);
+        }
+
+        // Set new timer to hide indicator after 30 seconds
+        stableConnectionTimer.current = setTimeout(() => {
+          setIsVisible(false);
+        }, 30000);
+      }
+
+      // Update the previous status
+      previousStatusRef.current = status.status;
+    },
+    [toast]
+  );
+
+  const { healthStatus, isHealthy, isUnhealthy, isChecking, manualCheck, lastChecked } =
+    useHealthCheck({
+      interval: 15000, // Less frequent by default
+      enabled: true,
+      onStatusChange: handleStatusChange,
+      failureThreshold: 2,
+      successThreshold: 1,
+      timeoutMs: 8000,
+      retryOnce: true,
+    });
 
   const getStatusColor = () => {
     if (isHealthy) return 'green';
@@ -145,7 +159,7 @@ const HealthIndicator = ({ position = 'fixed', showDetails = false }: HealthIndi
           border="1px solid"
           borderColor="gray.200"
           onClick={() => setIsVisible(true)}
-          _hover={{ bg: "gray.50" }}
+          _hover={{ bg: 'gray.50' }}
           p={1}
           minW="auto"
           h="auto"
@@ -173,16 +187,16 @@ const HealthIndicator = ({ position = 'fixed', showDetails = false }: HealthIndi
         align="center"
         justify="space-between"
         p={2}
-        cursor={showDetails ? "pointer" : "default"}
+        cursor={showDetails ? 'pointer' : 'default'}
         onClick={showDetails ? () => setIsExpanded(!isExpanded) : undefined}
-        _hover={showDetails ? { bg: "gray.50" } : undefined}
+        _hover={showDetails ? { bg: 'gray.50' } : undefined}
       >
         <HStack spacing={2}>
           <Icon
             as={getStatusIcon()}
             color={`${getStatusColor()}.500`}
             boxSize={3}
-            animation={isChecking ? "spin 1s linear infinite" : undefined}
+            animation={isChecking ? 'spin 1s linear infinite' : undefined}
           />
           <Text fontSize="xs" fontWeight="medium">
             {getStatusText()}
@@ -202,7 +216,7 @@ const HealthIndicator = ({ position = 'fixed', showDetails = false }: HealthIndi
           >
             <Icon as={RepeatIcon} boxSize={3} />
           </Button>
-          
+
           <Button
             size="xs"
             variant="ghost"
@@ -219,13 +233,9 @@ const HealthIndicator = ({ position = 'fixed', showDetails = false }: HealthIndi
           >
             ✕
           </Button>
-          
+
           {showDetails && (
-            <Icon
-              as={isExpanded ? ChevronUpIcon : ChevronDownIcon}
-              boxSize={4}
-              color="gray.500"
-            />
+            <Icon as={isExpanded ? ChevronUpIcon : ChevronDownIcon} boxSize={4} color="gray.500" />
           )}
         </HStack>
       </Flex>
@@ -241,7 +251,7 @@ const HealthIndicator = ({ position = 'fixed', showDetails = false }: HealthIndi
                   {healthStatus.status}
                 </Badge>
               </HStack>
-              
+
               <HStack justify="space-between">
                 <Text color="gray.600">Last Checked:</Text>
                 <Text>{formatLastChecked(lastChecked)}</Text>
@@ -260,7 +270,7 @@ const HealthIndicator = ({ position = 'fixed', showDetails = false }: HealthIndi
                     <Text color="gray.600">Active Rooms:</Text>
                     <Text>{healthStatus.stats.activeRooms}</Text>
                   </HStack>
-                  
+
                   <HStack justify="space-between">
                     <Text color="gray.600">Connections:</Text>
                     <Text>{healthStatus.stats.totalConnections}</Text>
@@ -270,7 +280,9 @@ const HealthIndicator = ({ position = 'fixed', showDetails = false }: HealthIndi
 
               {healthStatus.error && (
                 <Box>
-                  <Text color="gray.600" mb={1}>Error:</Text>
+                  <Text color="gray.600" mb={1}>
+                    Error:
+                  </Text>
                   <Text color="red.500" fontSize="xs" wordBreak="break-word">
                     {healthStatus.error}
                   </Text>

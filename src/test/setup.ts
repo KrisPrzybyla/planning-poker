@@ -1,22 +1,22 @@
-import '@testing-library/jest-dom'
-import { afterEach, vi } from 'vitest'
-import { cleanup } from '@testing-library/react'
-import { webcrypto } from 'node:crypto'
+import '@testing-library/jest-dom';
+import { afterEach, vi } from 'vitest';
+import { cleanup } from '@testing-library/react';
+import { webcrypto } from 'node:crypto';
 
 // Polyfill for crypto.getRandomValues
 if (!globalThis.crypto) {
-  globalThis.crypto = webcrypto as Crypto
+  globalThis.crypto = webcrypto as Crypto;
 }
 
 // Ensure getRandomValues is available
 if (!globalThis.crypto.getRandomValues) {
-  globalThis.crypto.getRandomValues = (array: any) => webcrypto.getRandomValues(array)
+  globalThis.crypto.getRandomValues = (array: any) => webcrypto.getRandomValues(array);
 }
 
 // Cleanup after each test case
 afterEach(() => {
-  cleanup()
-})
+  cleanup();
+});
 
 // Mock Socket.IO client
 const mockSocket = {
@@ -25,26 +25,26 @@ const mockSocket = {
   off: vi.fn(),
   disconnect: vi.fn(),
   connected: true,
-  id: 'mock-socket-id'
-}
+  id: 'mock-socket-id',
+};
 
 vi.mock('socket.io-client', () => ({
-  io: vi.fn(() => mockSocket)
-}))
+  io: vi.fn(() => mockSocket),
+}));
 
 // Mock nanoid
 vi.mock('nanoid', () => ({
-  nanoid: vi.fn(() => 'mock-id')
-}))
+  nanoid: vi.fn(() => 'mock-id'),
+}));
 
 // Mock UUID
 vi.mock('uuid', () => ({
-  v4: vi.fn(() => 'mock-uuid')
-}))
+  v4: vi.fn(() => 'mock-uuid'),
+}));
 
 // Global test utilities
 declare global {
-  var mockSocket: any
+  var mockSocket: any;
 }
 
-global.mockSocket = mockSocket
+global.mockSocket = mockSocket;

@@ -1,12 +1,6 @@
 import { useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import {
-  Box,
-  Container,
-  Heading,
-  Text,
-  VStack,
-} from '@chakra-ui/react';
+import { Box, Container, Heading, Text, VStack } from '@chakra-ui/react';
 import JoinRoomForm from '../components/JoinRoomForm';
 
 const JoinPage = () => {

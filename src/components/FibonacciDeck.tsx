@@ -20,13 +20,10 @@ const FibonacciDeck: React.FC<FibonacciDeckProps> = ({
   return (
     <Box width="100%" p={4}>
       {isVotingActive && !isResultsVisible && (
-        <Text 
-          textAlign="center" 
-          fontSize="sm" 
-          color="gray.600" 
-          mb={4}
-        >
-          {selectedValue ? 'You can change your vote anytime before results are revealed' : 'Select your estimate'}
+        <Text textAlign="center" fontSize="sm" color="gray.600" mb={4}>
+          {selectedValue
+            ? 'You can change your vote anytime before results are revealed'
+            : 'Select your estimate'}
         </Text>
       )}
       <SimpleGrid columns={GRID_BREAKPOINTS.CARDS} spacing={4} justifyItems="center">

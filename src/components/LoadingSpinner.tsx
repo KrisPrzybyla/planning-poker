@@ -6,9 +6,9 @@ interface LoadingSpinnerProps {
   fullHeight?: boolean;
 }
 
-const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({ 
-  message = 'Loading...', 
-  fullHeight = true 
+const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
+  message = 'Loading...',
+  fullHeight = true,
 }) => {
   return (
     <Center height={fullHeight ? '100vh' : 'auto'}>

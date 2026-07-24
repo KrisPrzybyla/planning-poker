@@ -66,10 +66,18 @@ function shouldLog(level) {
 }
 
 export const logger = {
-  error: (msg, meta) => { if (shouldLog('error')) log('error', msg, meta); },
-  warn:  (msg, meta) => { if (shouldLog('warn'))  log('warn',  msg, meta); },
-  info:  (msg, meta) => { if (shouldLog('info'))  log('info',  msg, meta); },
-  debug: (msg, meta) => { if (shouldLog('debug')) log('debug', msg, meta); },
+  error: (msg, meta) => {
+    if (shouldLog('error')) log('error', msg, meta);
+  },
+  warn: (msg, meta) => {
+    if (shouldLog('warn')) log('warn', msg, meta);
+  },
+  info: (msg, meta) => {
+    if (shouldLog('info')) log('info', msg, meta);
+  },
+  debug: (msg, meta) => {
+    if (shouldLog('debug')) log('debug', msg, meta);
+  },
 };
 
 // Global handlers to catch unexpected crashes
@@ -78,5 +86,7 @@ process.on('uncaughtException', (err) => {
 });
 
 process.on('unhandledRejection', (reason) => {
-  logger.error('unhandledRejection', { reason: reason instanceof Error ? { message: reason.message, stack: reason.stack } : reason });
+  logger.error('unhandledRejection', {
+    reason: reason instanceof Error ? { message: reason.message, stack: reason.stack } : reason,
+  });
 });

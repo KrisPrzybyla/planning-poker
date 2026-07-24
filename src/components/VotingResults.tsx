@@ -1,4 +1,14 @@
-import { Box, Text, Heading, Progress, SimpleGrid, Stat, StatLabel, StatNumber, StatHelpText } from '@chakra-ui/react';
+import {
+  Box,
+  Text,
+  Heading,
+  Progress,
+  SimpleGrid,
+  Stat,
+  StatLabel,
+  StatNumber,
+  StatHelpText,
+} from '@chakra-ui/react';
 import { VotingStats } from '../types';
 
 interface VotingResultsProps {

@@ -1,11 +1,4 @@
-import {
-  Box,
-  Text,
-  useToast,
-  useClipboard,
-  IconButton,
-  HStack,
-} from '@chakra-ui/react';
+import { Box, Text, useToast, useClipboard, IconButton, HStack } from '@chakra-ui/react';
 
 interface RoomInfoProps {
   roomId: string;
@@ -28,25 +21,13 @@ const RoomInfo = ({ roomId }: RoomInfoProps) => {
   };
 
   return (
-    <Box 
-      p={3} 
-      borderWidth="1px" 
-      borderRadius="lg" 
-      bg="gray.50"
-      maxW="400px"
-    >
+    <Box p={3} borderWidth="1px" borderRadius="lg" bg="gray.50" maxW="400px">
       <HStack spacing={2} align="center">
         <Box flex="1" minW="0">
           <Text fontSize="xs" color="gray.600" mb={1}>
             Room Link
           </Text>
-          <Text 
-            fontSize="sm" 
-            fontFamily="mono"
-            color="gray.800"
-            isTruncated
-            title={roomUrl}
-          >
+          <Text fontSize="sm" fontFamily="mono" color="gray.800" isTruncated title={roomUrl}>
             {roomUrl}
           </Text>
         </Box>
@@ -55,8 +36,8 @@ const RoomInfo = ({ roomId }: RoomInfoProps) => {
           icon={<Text fontSize="lg">📋</Text>}
           size="sm"
           onClick={handleCopyLink}
-          colorScheme={hasUrlCopied ? "green" : "blue"}
-          variant={hasUrlCopied ? "solid" : "outline"}
+          colorScheme={hasUrlCopied ? 'green' : 'blue'}
+          variant={hasUrlCopied ? 'solid' : 'outline'}
         />
       </HStack>
     </Box>

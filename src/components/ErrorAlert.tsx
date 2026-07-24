@@ -15,11 +15,7 @@ interface ErrorAlertProps {
   showBackButton?: boolean;
 }
 
-const ErrorAlert: React.FC<ErrorAlertProps> = ({ 
-  error, 
-  onBackToHome, 
-  showBackButton = true 
-}) => {
+const ErrorAlert: React.FC<ErrorAlertProps> = ({ error, onBackToHome, showBackButton = true }) => {
   return (
     <Container maxW="container.lg" py={10}>
       <Alert status="error" borderRadius="md">

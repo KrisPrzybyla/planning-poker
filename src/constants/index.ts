@@ -11,10 +11,21 @@ export const TOAST_DURATIONS = {
 
 import { FibonacciCard } from '../types';
 
-export const FIBONACCI_VALUES: readonly FibonacciCard[] = ['0', '1', '2', '3', '5', '8', '13', '21', '?', '☕'];
+export const FIBONACCI_VALUES: readonly FibonacciCard[] = [
+  '0',
+  '1',
+  '2',
+  '3',
+  '5',
+  '8',
+  '13',
+  '21',
+  '?',
+  '☕',
+];
 
 export const CARD_TOOLTIPS = {
-  '?': 'I don\'t know - need more information',
+  '?': "I don't know - need more information",
   '☕': 'I need a break',
 } as const;
 

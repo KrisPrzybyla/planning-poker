@@ -16,21 +16,21 @@ const mockSocket = {
   off: jest.fn(),
   disconnect: jest.fn(),
   connected: true,
-  id: 'mock-socket-id'
+  id: 'mock-socket-id',
 };
 
 jest.mock('socket.io-client', () => ({
-  io: jest.fn(() => mockSocket)
+  io: jest.fn(() => mockSocket),
 }));
 
 // Mock nanoid
 jest.mock('nanoid', () => ({
-  nanoid: jest.fn(() => 'mock-id')
+  nanoid: jest.fn(() => 'mock-id'),
 }));
 
 // Mock UUID
 jest.mock('uuid', () => ({
-  v4: jest.fn(() => 'mock-uuid')
+  v4: jest.fn(() => 'mock-uuid'),
 }));
 
 // Global test utilities

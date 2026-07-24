@@ -122,7 +122,10 @@ describe('Socket.IO Server (real server.js)', () => {
 
       const joiner = createClient();
       await waitFor(joiner, 'connect');
-      const joined = await emitAck(joiner, 'joinRoom', { roomId: created.roomId, userName: 'Joiner' });
+      const joined = await emitAck(joiner, 'joinRoom', {
+        roomId: created.roomId,
+        userName: 'Joiner',
+      });
 
       expect(joined.success).toBe(true);
       expect(joined.user.name).toBe('Joiner');
@@ -136,7 +139,10 @@ describe('Socket.IO Server (real server.js)', () => {
       const client = createClient();
       await waitFor(client, 'connect');
 
-      const response = await emitAck(client, 'joinRoom', { roomId: 'NOPE99', userName: 'Test User' });
+      const response = await emitAck(client, 'joinRoom', {
+        roomId: 'NOPE99',
+        userName: 'Test User',
+      });
 
       expect(response.success).toBe(false);
       expect(response.error).toBe('Room not found');
@@ -194,7 +200,10 @@ describe('Socket.IO Server (real server.js)', () => {
       await waitForRoomState(client, (r) => r.isResultsVisible === true);
 
       client.emit('resetVoting', { roomId });
-      const room = await waitForRoomState(client, (r) => r.isResultsVisible === false && r.currentStory?.votes?.length === 0);
+      const room = await waitForRoomState(
+        client,
+        (r) => r.isResultsVisible === false && r.currentStory?.votes?.length === 0
+      );
       expect(room.currentStory.votes).toEqual([]);
     });
   });
@@ -207,9 +216,15 @@ describe('Socket.IO Server (real server.js)', () => {
 
       const participant = createClient();
       await waitFor(participant, 'connect');
-      const joined = await emitAck(participant, 'joinRoom', { roomId: created.roomId, userName: 'Participant' });
+      const joined = await emitAck(participant, 'joinRoom', {
+        roomId: created.roomId,
+        userName: 'Participant',
+      });
 
-      const response = await emitAck(sm, 'removeUser', { roomId: created.roomId, userIdToRemove: joined.user.id });
+      const response = await emitAck(sm, 'removeUser', {
+        roomId: created.roomId,
+        userIdToRemove: joined.user.id,
+      });
       expect(response.success).toBe(true);
 
       const room = await getRoom(created.roomId);
@@ -225,7 +240,10 @@ describe('Socket.IO Server (real server.js)', () => {
       await waitFor(participant, 'connect');
       await emitAck(participant, 'joinRoom', { roomId: created.roomId, userName: 'Participant' });
 
-      const response = await emitAck(participant, 'removeUser', { roomId: created.roomId, userIdToRemove: 'anyone' });
+      const response = await emitAck(participant, 'removeUser', {
+        roomId: created.roomId,
+        userIdToRemove: 'anyone',
+      });
       expect(response.success).toBe(false);
       expect(response.error).toBe('Only Scrum Master can remove users');
     });
@@ -235,7 +253,10 @@ describe('Socket.IO Server (real server.js)', () => {
       await waitFor(sm, 'connect');
       const created = await emitAck(sm, 'createRoom', { userName: 'Scrum Master' });
 
-      const response = await emitAck(sm, 'removeUser', { roomId: created.roomId, userIdToRemove: created.user.id });
+      const response = await emitAck(sm, 'removeUser', {
+        roomId: created.roomId,
+        userIdToRemove: created.user.id,
+      });
       expect(response.success).toBe(false);
       expect(response.error).toBe('Cannot remove Scrum Master');
     });
@@ -340,7 +361,9 @@ describe('Socket.IO Server (real server.js)', () => {
       await runPresenceSweep();
 
       room = await getRoom(roomId);
-      expect(room.users.find((u: any) => u.id === joined.user.id).role).toBe('Temporary Scrum Master');
+      expect(room.users.find((u: any) => u.id === joined.user.id).role).toBe(
+        'Temporary Scrum Master'
+      );
 
       // Original Scrum Master comes back.
       const returning = createClient();

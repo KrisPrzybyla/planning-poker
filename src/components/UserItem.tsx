@@ -1,12 +1,5 @@
 import { memo } from 'react';
-import {
-  Flex,
-  Text,
-  Badge,
-  Avatar,
-  IconButton,
-  ListItem,
-} from '@chakra-ui/react';
+import { Flex, Text, Badge, Avatar, IconButton, ListItem } from '@chakra-ui/react';
 import { CloseIcon } from '@chakra-ui/icons';
 import { User, Vote } from '../types';
 
@@ -37,13 +30,16 @@ const UserItem: React.FC<UserItemProps> = ({
   };
 
   const { hasVoted, voteValue } = getUserVoteStatus();
-  const canRemoveUser = (currentUser?.role === 'Scrum Master' || currentUser?.role === 'Temporary Scrum Master') && 
-    currentUser?.id !== user.id && 
-    user.role !== 'Scrum Master' && 
+  const canRemoveUser =
+    (currentUser?.role === 'Scrum Master' || currentUser?.role === 'Temporary Scrum Master') &&
+    currentUser?.id !== user.id &&
+    user.role !== 'Scrum Master' &&
     user.role !== 'Temporary Scrum Master';
 
   const handleRemoveUser = () => {
-    const confirmed = window.confirm(`Are you sure you want to remove user "${user.name}" from the room?`);
+    const confirmed = window.confirm(
+      `Are you sure you want to remove user "${user.name}" from the room?`
+    );
     if (confirmed) {
       onRemoveUser(user);
     }
@@ -51,32 +47,27 @@ const UserItem: React.FC<UserItemProps> = ({
 
   return (
     <ListItem>
-      <Flex 
-        align="center" 
-        justify="space-between" 
+      <Flex
+        align="center"
+        justify="space-between"
         w="100%"
         className="user-item"
         position="relative"
         _hover={{
           '& .remove-button': {
-            display: 'flex'
-          }
+            display: 'flex',
+          },
         }}
       >
         <Flex align="center" flex="1" minW="0">
           <Avatar size="sm" name={user.name} mr={3} />
-          <Text 
-            fontWeight="medium" 
-            fontSize="18px"
-            isTruncated
-            mr={2}
-          >
+          <Text fontWeight="medium" fontSize="18px" isTruncated mr={2}>
             {user.name}
           </Text>
           {(user.role === 'Scrum Master' || user.role === 'Temporary Scrum Master') && (
-            <Badge 
-              colorScheme={user.role === 'Scrum Master' ? 'purple' : 'orange'} 
-              variant="solid" 
+            <Badge
+              colorScheme={user.role === 'Scrum Master' ? 'purple' : 'orange'}
+              variant="solid"
               fontSize="xs"
               px={2}
               py={1}
@@ -85,13 +76,7 @@ const UserItem: React.FC<UserItemProps> = ({
             </Badge>
           )}
           {!user.isConnected && (
-            <Badge 
-              colorScheme="red" 
-              variant="outline" 
-              fontSize="xs"
-              px={2}
-              py={1}
-            >
+            <Badge colorScheme="red" variant="outline" fontSize="xs" px={2} py={1}>
               OFFLINE
             </Badge>
           )}
@@ -111,14 +96,7 @@ const UserItem: React.FC<UserItemProps> = ({
             </Badge>
           )}
           {isResultsVisible && hasVoted && (
-            <Badge 
-              colorScheme="blue" 
-              fontSize="md"
-              minW="36px"
-              textAlign="center"
-              px={2}
-              py={1}
-            >
+            <Badge colorScheme="blue" fontSize="md" minW="36px" textAlign="center" px={2} py={1}>
               {voteValue}
             </Badge>
           )}

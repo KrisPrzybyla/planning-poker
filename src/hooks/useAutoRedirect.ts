@@ -10,7 +10,12 @@ interface UseAutoRedirectProps {
   error: string | null;
 }
 
-export const useAutoRedirect = ({ roomId, currentUser, isConnected, error }: UseAutoRedirectProps) => {
+export const useAutoRedirect = ({
+  roomId,
+  currentUser,
+  isConnected,
+  error,
+}: UseAutoRedirectProps) => {
   const navigate = useNavigate();
 
   useEffect(() => {

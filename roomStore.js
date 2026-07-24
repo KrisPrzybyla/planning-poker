@@ -86,7 +86,10 @@ const roomLocks = new Map();
 export function withRoomLock(roomId, fn) {
   const previous = roomLocks.get(roomId) || Promise.resolve();
   const run = previous.then(fn, fn);
-  const tail = run.then(() => {}, () => {});
+  const tail = run.then(
+    () => {},
+    () => {}
+  );
   roomLocks.set(roomId, tail);
 
   // Self-cleaning: once this operation settles, drop the map entry — but only

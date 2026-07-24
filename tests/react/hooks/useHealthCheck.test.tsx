@@ -32,8 +32,8 @@ describe('useHealthCheck', () => {
           status: 'healthy',
           timestamp: '2024-01-01T00:00:00.000Z',
           uptime: 3600,
-          stats: { activeRooms: 5, totalConnections: 10 }
-        })
+          stats: { activeRooms: 5, totalConnections: 10 },
+        }),
       });
 
       const { result } = renderHook(() => useHealthCheck({ enabled: false }));
@@ -51,19 +51,22 @@ describe('useHealthCheck', () => {
         status: 'healthy',
         timestamp: '2024-01-01T00:00:00.000Z',
         uptime: 3600,
-        stats: { activeRooms: 5, totalConnections: 10 }
+        stats: { activeRooms: 5, totalConnections: 10 },
       };
 
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        json: async () => mockResponse
+        json: async () => mockResponse,
       });
 
       const { result } = renderHook(() => useHealthCheck({ interval: 1000 }));
 
-      await waitFor(() => {
-        expect(result.current.isHealthy).toBe(true);
-      }, { timeout: 3000 });
+      await waitFor(
+        () => {
+          expect(result.current.isHealthy).toBe(true);
+        },
+        { timeout: 3000 }
+      );
 
       expect(result.current.healthStatus.status).toBe('healthy');
       expect(result.current.healthStatus.timestamp).toBe(mockResponse.timestamp);
@@ -76,7 +79,7 @@ describe('useHealthCheck', () => {
     test('should call fetch with correct URL', async () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ status: 'healthy' })
+        json: async () => ({ status: 'healthy' }),
       });
 
       renderHook(() => useHealthCheck());
@@ -86,7 +89,7 @@ describe('useHealthCheck', () => {
           'http://localhost/api/health',
           expect.objectContaining({
             method: 'GET',
-            headers: { 'Content-Type': 'application/json' }
+            headers: { 'Content-Type': 'application/json' },
           })
         );
       });
@@ -98,7 +101,7 @@ describe('useHealthCheck', () => {
 
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ status: 'healthy' })
+        json: async () => ({ status: 'healthy' }),
       });
 
       renderHook(() => useHealthCheck());
@@ -108,7 +111,7 @@ describe('useHealthCheck', () => {
           'http://custom-backend:8080/api/health',
           expect.objectContaining({
             method: 'GET',
-            headers: { 'Content-Type': 'application/json' }
+            headers: { 'Content-Type': 'application/json' },
           })
         );
       });
@@ -138,7 +141,7 @@ describe('useHealthCheck', () => {
       mockFetch.mockResolvedValueOnce({
         ok: false,
         status: 500,
-        statusText: 'Internal Server Error'
+        statusText: 'Internal Server Error',
       });
 
       const { result } = renderHook(() => useHealthCheck({ enabled: false }));
@@ -148,7 +151,9 @@ describe('useHealthCheck', () => {
       });
 
       expect(result.current.healthStatus.status).toBe('unhealthy');
-      expect(result.current.healthStatus.error).toBe('Health check failed: 500 Internal Server Error');
+      expect(result.current.healthStatus.error).toBe(
+        'Health check failed: 500 Internal Server Error'
+      );
     });
 
     test('should handle timeout', async () => {
@@ -181,7 +186,7 @@ describe('useHealthCheck', () => {
     test('should perform periodic health checks', async () => {
       mockFetch.mockResolvedValue({
         ok: true,
-        json: async () => ({ status: 'healthy' })
+        json: async () => ({ status: 'healthy' }),
       });
 
       renderHook(() => useHealthCheck({ interval: 1000 }));
@@ -213,7 +218,7 @@ describe('useHealthCheck', () => {
     test('should not perform checks when disabled', async () => {
       mockFetch.mockResolvedValue({
         ok: true,
-        json: async () => ({ status: 'healthy' })
+        json: async () => ({ status: 'healthy' }),
       });
 
       renderHook(() => useHealthCheck({ enabled: false, interval: 1000 }));
@@ -231,7 +236,7 @@ describe('useHealthCheck', () => {
     test('should allow manual health check', async () => {
       mockFetch.mockResolvedValue({
         ok: true,
-        json: async () => ({ status: 'healthy' })
+        json: async () => ({ status: 'healthy' }),
       });
 
       const { result } = renderHook(() => useHealthCheck({ enabled: false }));
@@ -260,7 +265,7 @@ describe('useHealthCheck', () => {
 
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ status: 'healthy' })
+        json: async () => ({ status: 'healthy' }),
       });
 
       const { result } = renderHook(() => useHealthCheck({ enabled: false, onStatusChange }));
@@ -271,7 +276,7 @@ describe('useHealthCheck', () => {
 
       expect(onStatusChange).toHaveBeenCalledWith(
         expect.objectContaining({
-          status: 'healthy'
+          status: 'healthy',
         })
       );
     });
@@ -290,7 +295,7 @@ describe('useHealthCheck', () => {
       expect(onStatusChange).toHaveBeenCalledWith(
         expect.objectContaining({
           status: 'unhealthy',
-          error: 'Network error'
+          error: 'Network error',
         })
       );
     });
@@ -303,7 +308,7 @@ describe('useHealthCheck', () => {
 
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ status: 'healthy' })
+        json: async () => ({ status: 'healthy' }),
       });
 
       const { result } = renderHook(() => useHealthCheck({ enabled: false }));

@@ -22,6 +22,7 @@ A task estimation application using Planning Poker methodology for Scrum teams.
 ## Configuration
 
 Environment variables (see .env.example):
+
 - REDIS_URL (required) — room/vote state lives in Redis, so a server restart or redeploy doesn't wipe active sessions. Defaults to `redis://localhost:6379` if unset.
 - TRUST_PROXY=true if behind reverse proxy/CDN to get correct client IP and proper rate limiting.
 - API_RATE_WINDOW_MS and API_RATE_MAX to tune API rate limiting (defaults: 60000ms, 180 req/window).

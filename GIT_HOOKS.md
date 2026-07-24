@@ -7,6 +7,7 @@ The project has been configured with automatic Git hooks that run tests before e
 ## Configuration
 
 ### Husky
+
 - **Tool**: Husky v9.1.7
 - **Configuration file**: `.husky/pre-commit`
 - **Function**: Automatic test execution before commit
@@ -14,9 +15,11 @@ The project has been configured with automatic Git hooks that run tests before e
 ### Available Hooks
 
 #### 1. Standard Pre-commit Hook
+
 **File**: `.husky/pre-commit`
 
 Runs:
+
 - All React tests (67 tests)
 - All backend tests (8 tests)
 
@@ -26,10 +29,12 @@ Runs:
 ```
 
 #### 2. Lint-staged Hook (alternative)
+
 **File**: `.husky/pre-commit-lint-staged`
 **Configuration**: `.lintstagedrc.json`
 
 Runs only for changed files:
+
 - ESLint with automatic fixes
 - React and backend tests
 - Prettier for JSON/MD files

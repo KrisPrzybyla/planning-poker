@@ -6,18 +6,14 @@ import * as useHealthCheckModule from '../../../src/hooks/useHealthCheck';
 // Mock the useHealthCheck hook
 const mockUseHealthCheck = jest.fn();
 jest.mock('../../../src/hooks/useHealthCheck', () => ({
-  useHealthCheck: (...args: any[]) => mockUseHealthCheck(...args)
+  useHealthCheck: (...args: any[]) => mockUseHealthCheck(...args),
 }));
 
 // Mock toast
 const mockToast = jest.fn();
 
 const renderWithChakra = (component: React.ReactElement) => {
-  return render(
-    <ChakraProvider>
-      {component}
-    </ChakraProvider>
-  );
+  return render(<ChakraProvider>{component}</ChakraProvider>);
 };
 
 describe('HealthIndicator', () => {
@@ -34,19 +30,19 @@ describe('HealthIndicator', () => {
           status: 'healthy',
           timestamp: '2024-01-01T12:00:00.000Z',
           uptime: 3600,
-          stats: { activeRooms: 2, totalConnections: 5 }
+          stats: { activeRooms: 2, totalConnections: 5 },
         },
         isHealthy: true,
         isUnhealthy: false,
         isChecking: false,
         manualCheck: mockManualCheck,
-        lastChecked: '2024-01-01T12:00:00.000Z'
+        lastChecked: '2024-01-01T12:00:00.000Z',
       });
     });
 
     test('should show small icon when hidden by default', () => {
       renderWithChakra(<HealthIndicator />);
-      
+
       // Component is hidden by default, should show only small button
       const button = screen.getByRole('button');
       expect(button).toBeInTheDocument();
@@ -55,25 +51,25 @@ describe('HealthIndicator', () => {
     test('should display connected status when visible', async () => {
       // Mock component to be visible
       renderWithChakra(<HealthIndicator />);
-      
+
       // Click the small button to make it visible
       const toggleButton = screen.getByRole('button');
       await act(async () => {
         fireEvent.click(toggleButton);
       });
-      
+
       expect(screen.getByText('Connected')).toBeInTheDocument();
     });
 
     test('should show details when showDetails is true and expanded', async () => {
       renderWithChakra(<HealthIndicator showDetails={true} />);
-      
+
       // Click to make visible first
       const toggleButton = screen.getByRole('button');
       await act(async () => {
         fireEvent.click(toggleButton);
       });
-      
+
       expect(screen.getByText('Connected')).toBeInTheDocument();
     });
   });
@@ -84,37 +80,37 @@ describe('HealthIndicator', () => {
         healthStatus: {
           status: 'unhealthy',
           timestamp: '2024-01-01T12:00:00.000Z',
-          error: 'Connection failed'
+          error: 'Connection failed',
         },
         isHealthy: false,
         isUnhealthy: true,
         isChecking: false,
         manualCheck: mockManualCheck,
-        lastChecked: '2024-01-01T12:00:00.000Z'
+        lastChecked: '2024-01-01T12:00:00.000Z',
       });
     });
 
     test('should display disconnected status when visible', async () => {
       renderWithChakra(<HealthIndicator />);
-      
+
       // Click to make visible
       const toggleButton = screen.getByRole('button');
       await act(async () => {
         fireEvent.click(toggleButton);
       });
-      
+
       expect(screen.getByText('Disconnected')).toBeInTheDocument();
     });
 
     test('should show red status indicator when visible', async () => {
       renderWithChakra(<HealthIndicator />);
-      
+
       // Click to make visible
       const toggleButton = screen.getByRole('button');
       await act(async () => {
         fireEvent.click(toggleButton);
       });
-      
+
       expect(screen.getByText('Disconnected')).toBeInTheDocument();
     });
 
@@ -124,7 +120,7 @@ describe('HealthIndicator', () => {
       // Check that useHealthCheck was called with onStatusChange callback
       expect(mockUseHealthCheck).toHaveBeenCalledWith(
         expect.objectContaining({
-          onStatusChange: expect.any(Function)
+          onStatusChange: expect.any(Function),
         })
       );
     });
@@ -135,37 +131,37 @@ describe('HealthIndicator', () => {
       mockUseHealthCheck.mockReturnValue({
         healthStatus: {
           status: 'checking',
-          timestamp: '2024-01-01T12:00:00.000Z'
+          timestamp: '2024-01-01T12:00:00.000Z',
         },
         isHealthy: false,
         isUnhealthy: false,
         isChecking: true,
         manualCheck: mockManualCheck,
-        lastChecked: '2024-01-01T12:00:00.000Z'
+        lastChecked: '2024-01-01T12:00:00.000Z',
       });
     });
 
     test('should display checking status when visible', async () => {
       renderWithChakra(<HealthIndicator />);
-      
+
       // Click to make visible
       const toggleButton = screen.getByRole('button');
       await act(async () => {
         fireEvent.click(toggleButton);
       });
-      
+
       expect(screen.getByText('Checking...')).toBeInTheDocument();
     });
 
     test('should show yellow status indicator when visible', async () => {
       renderWithChakra(<HealthIndicator />);
-      
+
       // Click to make visible
       const toggleButton = screen.getByRole('button');
       await act(async () => {
         fireEvent.click(toggleButton);
       });
-      
+
       expect(screen.getByText('Checking...')).toBeInTheDocument();
     });
   });
@@ -178,23 +174,25 @@ describe('HealthIndicator', () => {
         isUnhealthy: false,
         isChecking: false,
         manualCheck: mockManualCheck,
-        lastChecked: '2024-01-01T12:00:00.000Z'
+        lastChecked: '2024-01-01T12:00:00.000Z',
       });
     });
 
     test('should call manualCheck when refresh button is clicked', async () => {
       renderWithChakra(<HealthIndicator />);
-      
+
       // First click to make visible
       const toggleButton = screen.getByRole('button');
       await act(async () => {
         fireEvent.click(toggleButton);
       });
-      
+
       // Now find the refresh button (there should be multiple buttons now)
       const buttons = screen.getAllByRole('button');
-      const refreshButton = buttons.find(button => button.getAttribute('title') !== 'Hide indicator');
-      
+      const refreshButton = buttons.find(
+        (button) => button.getAttribute('title') !== 'Hide indicator'
+      );
+
       if (refreshButton) {
         await act(async () => {
           fireEvent.click(refreshButton);
@@ -202,7 +200,6 @@ describe('HealthIndicator', () => {
         expect(mockManualCheck).toHaveBeenCalledTimes(1);
       }
     });
-
   });
 
   describe('Details Display', () => {
@@ -212,31 +209,31 @@ describe('HealthIndicator', () => {
           status: 'healthy',
           timestamp: '2024-01-01T12:00:00.000Z',
           uptime: 7200,
-          stats: { activeRooms: 3, totalConnections: 8 }
+          stats: { activeRooms: 3, totalConnections: 8 },
         },
         isHealthy: true,
         isUnhealthy: false,
         isChecking: false,
         manualCheck: mockManualCheck,
-        lastChecked: '2024-01-01T12:00:00.000Z'
+        lastChecked: '2024-01-01T12:00:00.000Z',
       });
     });
 
     test('should show detailed information when showDetails is true and expanded', async () => {
       renderWithChakra(<HealthIndicator showDetails={true} />);
-      
+
       // Click to make visible
       const toggleButton = screen.getByRole('button');
       await act(async () => {
         fireEvent.click(toggleButton);
       });
-      
+
       // Click to expand details
       const expandButton = screen.getByText('Connected');
       await act(async () => {
         fireEvent.click(expandButton);
       });
-      
+
       expect(screen.getByText('Status:')).toBeInTheDocument();
       expect(screen.getByText('Last Checked:')).toBeInTheDocument();
       expect(screen.getByText('Server Uptime:')).toBeInTheDocument();
@@ -246,13 +243,13 @@ describe('HealthIndicator', () => {
 
     test('should not show details when showDetails is false', async () => {
       renderWithChakra(<HealthIndicator showDetails={false} />);
-      
+
       // Click to make visible
       const toggleButton = screen.getByRole('button');
       await act(async () => {
         fireEvent.click(toggleButton);
       });
-      
+
       expect(screen.queryByText('Status:')).not.toBeInTheDocument();
       expect(screen.queryByText('Last Checked:')).not.toBeInTheDocument();
     });
@@ -261,14 +258,14 @@ describe('HealthIndicator', () => {
   describe('Position and Layout', () => {
     test('should render with fixed position by default', () => {
       const { container } = renderWithChakra(<HealthIndicator />);
-      
+
       const indicator = container.firstChild as HTMLElement;
       expect(indicator).toHaveStyle({ position: 'fixed' });
     });
 
     test('should render with relative position when specified', () => {
       const { container } = renderWithChakra(<HealthIndicator position="relative" />);
-      
+
       const indicator = container.firstChild as HTMLElement;
       expect(indicator).toHaveStyle({ position: 'relative' });
     });
@@ -277,16 +274,18 @@ describe('HealthIndicator', () => {
   describe('Hook Configuration', () => {
     test('should configure useHealthCheck with correct interval', () => {
       renderWithChakra(<HealthIndicator />);
-      
-      expect(mockUseHealthCheck).toHaveBeenCalledWith(expect.objectContaining({
-        interval: 15000,
-        enabled: true,
-        onStatusChange: expect.any(Function),
-        failureThreshold: 2,
-        successThreshold: 1,
-        timeoutMs: 8000,
-        retryOnce: true,
-      }));
+
+      expect(mockUseHealthCheck).toHaveBeenCalledWith(
+        expect.objectContaining({
+          interval: 15000,
+          enabled: true,
+          onStatusChange: expect.any(Function),
+          failureThreshold: 2,
+          successThreshold: 1,
+          timeoutMs: 8000,
+          retryOnce: true,
+        })
+      );
     });
   });
 });

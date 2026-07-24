@@ -26,8 +26,12 @@ const ScrumMasterControls = ({
   hasStory,
 }: ScrumMasterControlsProps) => {
   const { isOpen, onOpen, onClose } = useDisclosure();
-  const { isOpen: isEndSessionOpen, onOpen: onEndSessionOpen, onClose: onEndSessionClose } = useDisclosure();
-  
+  const {
+    isOpen: isEndSessionOpen,
+    onOpen: onEndSessionOpen,
+    onClose: onEndSessionClose,
+  } = useDisclosure();
+
   const {
     handleRevealResults,
     handleResetVoting,
@@ -52,10 +56,7 @@ const ScrumMasterControls = ({
     <>
       <Box p={4} borderWidth="1px" borderRadius="lg" bg="white">
         <Flex direction="column" gap={3}>
-          <Button
-            colorScheme="blue"
-            onClick={handleNewVoting}
-          >
+          <Button colorScheme="blue" onClick={handleNewVoting}>
             {hasStory ? 'New Voting' : 'Add Voting'}
           </Button>
 

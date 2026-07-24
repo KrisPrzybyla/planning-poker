@@ -35,7 +35,9 @@ const VotingCompleteModal: React.FC<VotingCompleteModalProps> = ({
           <Button colorScheme="blue" mr={3} onClick={onRevealResults}>
             Reveal Results
           </Button>
-          <Button variant="ghost" onClick={onClose}>Close</Button>
+          <Button variant="ghost" onClick={onClose}>
+            Close
+          </Button>
         </ModalFooter>
       </ModalContent>
     </Modal>
