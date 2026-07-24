@@ -1,35 +1,9 @@
-import { createContext, useContext, useState, useEffect, ReactNode, useRef, useMemo, useCallback } from 'react';
+import { useState, useEffect, ReactNode, useRef, useMemo, useCallback } from 'react';
 import { useToast } from '@chakra-ui/react';
 import { io, Socket } from 'socket.io-client';
 import { Room, User, Story, VotingStats } from '../types';
 import { calculateVotingStats } from '../utils/votingUtils';
-
-interface RoomContextType {
-  socket: Socket | null;
-  room: Room | null;
-  currentUser: User | null;
-  isConnected: boolean;
-  error: string | null;
-  votingStats: VotingStats | null;
-  createRoom: (userName: string, initialStory?: Omit<Story, 'id' | 'votes'>) => Promise<string>;
-  joinRoom: (roomId: string, userName: string) => Promise<void>;
-  startVoting: (story: Omit<Story, 'id' | 'votes'>) => void;
-  submitVote: (value: string) => void;
-  revealResults: () => void;
-  resetVoting: () => void;
-  endSession: () => void;
-  removeUser: (userIdToRemove: string) => Promise<void>;
-}
-
-const RoomContext = createContext<RoomContextType | undefined>(undefined);
-
-export const useRoom = () => {
-  const context = useContext(RoomContext);
-  if (!context) {
-    throw new Error('useRoom must be used within a RoomProvider');
-  }
-  return context;
-};
+import { RoomContext } from './roomContext';
 
 interface RoomProviderProps {
   children: ReactNode;
@@ -90,7 +64,7 @@ export const RoomProvider = ({ children }: RoomProviderProps) => {
 
     socketInstance.on('roomUpdated', (updatedRoom: Room) => {
       setRoom(updatedRoom);
-      
+
       // Calculate voting stats if results are visible
       if (updatedRoom.isResultsVisible && updatedRoom.currentStory) {
         setVotingStats(calculateVotingStats(updatedRoom.currentStory.votes));
@@ -115,61 +89,79 @@ export const RoomProvider = ({ children }: RoomProviderProps) => {
       setRoom(null);
       setCurrentUser(null);
       setVotingStats(null);
-      
+
       // Redirect to home page
       window.location.href = '/';
     });
 
-    socketInstance.on('scrumMasterChanged', (data: { newScrumMaster: User; reason: string; originalScrumMaster?: User; previousTempScrumMaster?: User; removedUser?: User }) => {
-      // Update current user if they are affected by the change
-      const currentUserValue = currentUserRef.current;
-      if (currentUserValue) {
-        if (currentUserValue.id === data.newScrumMaster.id) {
-          setCurrentUser(data.newScrumMaster);
-        } else if (data.previousTempScrumMaster && currentUserValue.id === data.previousTempScrumMaster.id) {
-          setCurrentUser({ ...currentUserValue, role: 'Participant' });
-        } else if (data.originalScrumMaster && currentUserValue.id === data.originalScrumMaster.id) {
-          setCurrentUser({ ...currentUserValue, role: data.originalScrumMaster.role });
-        }
-      }
-      
-      // Update room state to reflect role changes
-      const roomValue = roomRef.current;
-      if (roomValue) {
-        const updatedRoom = { ...roomValue };
-        updatedRoom.users = updatedRoom.users.map(user => {
-          if (user.id === data.newScrumMaster.id) {
-            return { ...user, role: data.newScrumMaster.role };
-          } else if (data.previousTempScrumMaster && user.id === data.previousTempScrumMaster.id) {
-            return { ...user, role: 'Participant' };
-          } else if (data.originalScrumMaster && user.id === data.originalScrumMaster.id) {
-            return { ...user, role: data.originalScrumMaster.role };
+    socketInstance.on(
+      'scrumMasterChanged',
+      (data: {
+        newScrumMaster: User;
+        reason: string;
+        originalScrumMaster?: User;
+        previousTempScrumMaster?: User;
+        removedUser?: User;
+      }) => {
+        // Update current user if they are affected by the change
+        const currentUserValue = currentUserRef.current;
+        if (currentUserValue) {
+          if (currentUserValue.id === data.newScrumMaster.id) {
+            setCurrentUser(data.newScrumMaster);
+          } else if (
+            data.previousTempScrumMaster &&
+            currentUserValue.id === data.previousTempScrumMaster.id
+          ) {
+            setCurrentUser({ ...currentUserValue, role: 'Participant' });
+          } else if (
+            data.originalScrumMaster &&
+            currentUserValue.id === data.originalScrumMaster.id
+          ) {
+            setCurrentUser({ ...currentUserValue, role: data.originalScrumMaster.role });
           }
-          return user;
-        });
-        setRoom(updatedRoom);
+        }
+
+        // Update room state to reflect role changes
+        const roomValue = roomRef.current;
+        if (roomValue) {
+          const updatedRoom = { ...roomValue };
+          updatedRoom.users = updatedRoom.users.map((user) => {
+            if (user.id === data.newScrumMaster.id) {
+              return { ...user, role: data.newScrumMaster.role };
+            } else if (
+              data.previousTempScrumMaster &&
+              user.id === data.previousTempScrumMaster.id
+            ) {
+              return { ...user, role: 'Participant' };
+            } else if (data.originalScrumMaster && user.id === data.originalScrumMaster.id) {
+              return { ...user, role: data.originalScrumMaster.role };
+            }
+            return user;
+          });
+          setRoom(updatedRoom);
+        }
+
+        // Show notification based on reason
+        const messages = {
+          original_disconnected: `${data.newScrumMaster.name} is now the temporary Scrum Master (original SM disconnected)`,
+          original_reconnected: `${data.newScrumMaster.name} has returned as Scrum Master`,
+          permanent_promotion: `${data.newScrumMaster.name} is now the Scrum Master`,
+        };
+
+        // You can add toast notification here if needed
+        console.log(messages[data.reason as keyof typeof messages] || 'Scrum Master changed');
       }
-      
-      // Show notification based on reason
-      const messages = {
-        'original_disconnected': `${data.newScrumMaster.name} is now the temporary Scrum Master (original SM disconnected)`,
-        'original_reconnected': `${data.newScrumMaster.name} has returned as Scrum Master`,
-        'permanent_promotion': `${data.newScrumMaster.name} is now the Scrum Master`
-      };
-      
-      // You can add toast notification here if needed
-      console.log(messages[data.reason as keyof typeof messages] || 'Scrum Master changed');
-    });
+    );
 
     socketInstance.on('userRemoved', (data: { reason: string }) => {
       // Clear room data and redirect to home page
       setRoom(null);
       setCurrentUser(null);
       setVotingStats(null);
-      
+
       // Show alert to user
       alert(`You have been removed from the room: ${data.reason}`);
-      
+
       // Redirect to home page
       window.location.href = '/';
     });
@@ -179,22 +171,26 @@ export const RoomProvider = ({ children }: RoomProviderProps) => {
       const savedUser = localStorage.getItem('planningPoker_currentUser');
       const currentPath = window.location.pathname;
       const roomMatch = currentPath.match(/^\/room\/(.+)$/);
-      
+
       if (savedUser && roomMatch) {
         const user = JSON.parse(savedUser);
         const roomId = roomMatch[1];
-        
+
         // Try to rejoin the room
-        socketInstance.emit('rejoinRoom', { roomId, userId: user.id }, (response: { success: boolean; user?: User; error?: string }) => {
-          if (response.success && response.user) {
-            setCurrentUser(response.user);
-          } else {
-            // If rejoin fails, clear saved data and redirect to join page
-            localStorage.removeItem('planningPoker_currentUser');
-            setCurrentUser(null);
-            window.location.href = `/join/${roomId}`;
+        socketInstance.emit(
+          'rejoinRoom',
+          { roomId, userId: user.id },
+          (response: { success: boolean; user?: User; error?: string }) => {
+            if (response.success && response.user) {
+              setCurrentUser(response.user);
+            } else {
+              // If rejoin fails, clear saved data and redirect to join page
+              localStorage.removeItem('planningPoker_currentUser');
+              setCurrentUser(null);
+              window.location.href = `/join/${roomId}`;
+            }
           }
-        });
+        );
       }
     });
 
@@ -203,65 +199,95 @@ export const RoomProvider = ({ children }: RoomProviderProps) => {
     };
   }, [toast]);
 
-  const createRoom = useCallback(async (userName: string, initialStory?: Omit<Story, 'id' | 'votes'>): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      if (!socket) {
-        reject('Socket not connected');
+  const createRoom = useCallback(
+    async (userName: string, initialStory?: Omit<Story, 'id' | 'votes'>): Promise<string> => {
+      return new Promise((resolve, reject) => {
+        if (!socket) {
+          reject('Socket not connected');
+          return;
+        }
+
+        socket.emit(
+          'createRoom',
+          { userName, initialStory },
+          (response: { success: boolean; roomId?: string; user?: User; error?: string }) => {
+            if (response.success && response.roomId && response.user) {
+              setCurrentUser(response.user);
+              resolve(response.roomId);
+            } else {
+              setError(response.error || 'Failed to create room');
+              reject(response.error || 'Failed to create room');
+            }
+          }
+        );
+      });
+    },
+    [socket]
+  );
+
+  const joinRoom = useCallback(
+    async (roomId: string, userName: string): Promise<void> => {
+      return new Promise((resolve, reject) => {
+        if (!socket) {
+          reject('Socket not connected');
+          return;
+        }
+
+        socket.emit(
+          'joinRoom',
+          { roomId, userName },
+          (response: { success: boolean; user?: User; error?: string }) => {
+            if (response.success && response.user) {
+              setCurrentUser(response.user);
+              resolve();
+            } else {
+              setError(response.error || 'Failed to join room');
+              reject(response.error || 'Failed to join room');
+            }
+          }
+        );
+      });
+    },
+    [socket]
+  );
+
+  const startVoting = useCallback(
+    (story: Omit<Story, 'id' | 'votes'>) => {
+      if (
+        !socket ||
+        !room ||
+        !currentUser ||
+        (currentUser.role !== 'Scrum Master' && currentUser.role !== 'Temporary Scrum Master')
+      ) {
+        setError('Only Scrum Master can start voting');
         return;
       }
 
-      socket.emit('createRoom', { userName, initialStory }, (response: { success: boolean; roomId?: string; user?: User; error?: string }) => {
-        if (response.success && response.roomId && response.user) {
-          setCurrentUser(response.user);
-          resolve(response.roomId);
-        } else {
-          setError(response.error || 'Failed to create room');
-          reject(response.error || 'Failed to create room');
-        }
-      });
-    });
-  }, [socket]);
+      socket.emit('startVoting', { roomId: room.id, story });
+    },
+    [socket, room, currentUser]
+  );
 
-  const joinRoom = useCallback(async (roomId: string, userName: string): Promise<void> => {
-    return new Promise((resolve, reject) => {
-      if (!socket) {
-        reject('Socket not connected');
+  const submitVote = useCallback(
+    (value: string) => {
+      if (!socket || !room || !currentUser || !room.currentStory || !room.isVotingActive) {
+        setError('Cannot submit vote at this time');
         return;
       }
 
-      socket.emit('joinRoom', { roomId, userName }, (response: { success: boolean; user?: User; error?: string }) => {
-        if (response.success && response.user) {
-          setCurrentUser(response.user);
-          resolve();
-        } else {
-          setError(response.error || 'Failed to join room');
-          reject(response.error || 'Failed to join room');
-        }
-      });
-    });
-  }, [socket]);
-
-  const startVoting = useCallback((story: Omit<Story, 'id' | 'votes'>) => {
-    if (!socket || !room || !currentUser || (currentUser.role !== 'Scrum Master' && currentUser.role !== 'Temporary Scrum Master')) {
-      setError('Only Scrum Master can start voting');
-      return;
-    }
-
-    socket.emit('startVoting', { roomId: room.id, story });
-  }, [socket, room, currentUser]);
-
-  const submitVote = useCallback((value: string) => {
-    if (!socket || !room || !currentUser || !room.currentStory || !room.isVotingActive) {
-      setError('Cannot submit vote at this time');
-      return;
-    }
-
-    // Identity is taken from the authenticated socket server-side, not this payload.
-    socket.emit('submitVote', { roomId: room.id, value });
-  }, [socket, room, currentUser]);
+      // Identity is taken from the authenticated socket server-side, not this payload.
+      socket.emit('submitVote', { roomId: room.id, value });
+    },
+    [socket, room, currentUser]
+  );
 
   const revealResults = useCallback(() => {
-    if (!socket || !room || !currentUser || (currentUser.role !== 'Scrum Master' && currentUser.role !== 'Temporary Scrum Master')) {
+    if (
+      !socket ||
+      !room ||
+      !currentUser ||
+      (currentUser.role !== 'Scrum Master' && currentUser.role !== 'Temporary Scrum Master')
+    ) {
       setError('Only Scrum Master can reveal results');
       return;
     }
@@ -270,7 +296,12 @@ export const RoomProvider = ({ children }: RoomProviderProps) => {
   }, [socket, room, currentUser]);
 
   const resetVoting = useCallback(() => {
-    if (!socket || !room || !currentUser || (currentUser.role !== 'Scrum Master' && currentUser.role !== 'Temporary Scrum Master')) {
+    if (
+      !socket ||
+      !room ||
+      !currentUser ||
+      (currentUser.role !== 'Scrum Master' && currentUser.role !== 'Temporary Scrum Master')
+    ) {
       setError('Only Scrum Master can reset voting');
       return;
     }
@@ -279,7 +310,12 @@ export const RoomProvider = ({ children }: RoomProviderProps) => {
   }, [socket, room, currentUser]);
 
   const endSession = useCallback(() => {
-    if (!socket || !room || !currentUser || (currentUser.role !== 'Scrum Master' && currentUser.role !== 'Temporary Scrum Master')) {
+    if (
+      !socket ||
+      !room ||
+      !currentUser ||
+      (currentUser.role !== 'Scrum Master' && currentUser.role !== 'Temporary Scrum Master')
+    ) {
       setError('Only Scrum Master can end session');
       return;
     }
@@ -287,56 +323,71 @@ export const RoomProvider = ({ children }: RoomProviderProps) => {
     socket.emit('endSession', { roomId: room.id });
   }, [socket, room, currentUser]);
 
-  const removeUser = useCallback(async (userIdToRemove: string): Promise<void> => {
-    return new Promise((resolve, reject) => {
-      if (!socket || !room || !currentUser || (currentUser.role !== 'Scrum Master' && currentUser.role !== 'Temporary Scrum Master')) {
-        setError('Only Scrum Master can remove users');
-        reject('Only Scrum Master can remove users');
-        return;
-      }
-
-      socket.emit('removeUser', { roomId: room.id, userIdToRemove }, (response: { success: boolean; error?: string }) => {
-        if (response.success) {
-          resolve();
-        } else {
-          setError(response.error || 'Failed to remove user');
-          reject(response.error || 'Failed to remove user');
+  const removeUser = useCallback(
+    async (userIdToRemove: string): Promise<void> => {
+      return new Promise((resolve, reject) => {
+        if (
+          !socket ||
+          !room ||
+          !currentUser ||
+          (currentUser.role !== 'Scrum Master' && currentUser.role !== 'Temporary Scrum Master')
+        ) {
+          setError('Only Scrum Master can remove users');
+          reject('Only Scrum Master can remove users');
+          return;
         }
-      });
-    });
-  }, [socket, room, currentUser]);
 
-  const value = useMemo(() => ({
-    socket,
-    room,
-    currentUser,
-    isConnected,
-    error,
-    votingStats,
-    createRoom,
-    joinRoom,
-    startVoting,
-    submitVote,
-    revealResults,
-    resetVoting,
-    endSession,
-    removeUser,
-  }), [
-    socket,
-    room,
-    currentUser,
-    isConnected,
-    error,
-    votingStats,
-    createRoom,
-    joinRoom,
-    startVoting,
-    submitVote,
-    revealResults,
-    resetVoting,
-    endSession,
-    removeUser,
-  ]);
+        socket.emit(
+          'removeUser',
+          { roomId: room.id, userIdToRemove },
+          (response: { success: boolean; error?: string }) => {
+            if (response.success) {
+              resolve();
+            } else {
+              setError(response.error || 'Failed to remove user');
+              reject(response.error || 'Failed to remove user');
+            }
+          }
+        );
+      });
+    },
+    [socket, room, currentUser]
+  );
+
+  const value = useMemo(
+    () => ({
+      socket,
+      room,
+      currentUser,
+      isConnected,
+      error,
+      votingStats,
+      createRoom,
+      joinRoom,
+      startVoting,
+      submitVote,
+      revealResults,
+      resetVoting,
+      endSession,
+      removeUser,
+    }),
+    [
+      socket,
+      room,
+      currentUser,
+      isConnected,
+      error,
+      votingStats,
+      createRoom,
+      joinRoom,
+      startVoting,
+      submitVote,
+      revealResults,
+      resetVoting,
+      endSession,
+      removeUser,
+    ]
+  );
 
   return <RoomContext.Provider value={value}>{children}</RoomContext.Provider>;
 };

@@ -6,7 +6,7 @@ import Header from '../../../src/components/Header';
 
 // Mock useRoom hook
 const mockUseRoom = jest.fn();
-jest.mock('../../../src/context/RoomContext', () => ({
+jest.mock('../../../src/context/roomContext', () => ({
   useRoom: () => mockUseRoom(),
 }));
 
@@ -48,10 +48,10 @@ describe('Header', () => {
   it('should navigate to home when clicked and not in room', () => {
     mockUseLocation.mockReturnValue({ pathname: '/' });
     renderHeader();
-    
+
     const heading = screen.getByText('Planning Poker');
     fireEvent.click(heading);
-    
+
     expect(mockNavigate).toHaveBeenCalledWith('/');
   });
 
@@ -64,13 +64,15 @@ describe('Header', () => {
     mockUseLocation.mockReturnValue({ pathname: '/room/test-room' });
 
     renderHeader();
-    
+
     const heading = screen.getByText('Planning Poker');
     fireEvent.click(heading);
-    
+
     // Should show confirmation modal
     expect(screen.getByText('Leave Room?')).toBeInTheDocument();
-    expect(screen.getByText('Are you sure you want to leave the room and return to the home page?')).toBeInTheDocument();
+    expect(
+      screen.getByText('Are you sure you want to leave the room and return to the home page?')
+    ).toBeInTheDocument();
   });
 
   it('should navigate to home when confirmation is accepted', () => {
@@ -82,14 +84,14 @@ describe('Header', () => {
     mockUseLocation.mockReturnValue({ pathname: '/room/test-room' });
 
     renderHeader();
-    
+
     const heading = screen.getByText('Planning Poker');
     fireEvent.click(heading);
-    
+
     // Click confirm button
     const confirmButton = screen.getByText('Yes, Leave Room');
     fireEvent.click(confirmButton);
-    
+
     expect(mockNavigate).toHaveBeenCalledWith('/');
   });
 
@@ -102,13 +104,13 @@ describe('Header', () => {
     mockUseLocation.mockReturnValue({ pathname: '/room/test-room' });
 
     renderHeader();
-    
+
     const heading = screen.getByText('Planning Poker');
     fireEvent.click(heading);
-    
+
     // Verify modal is shown
     expect(screen.getByText('Leave Room?')).toBeInTheDocument();
-    
+
     // Click cancel button
     const cancelButton = screen.getByText('Cancel');
     expect(cancelButton).toBeInTheDocument();
@@ -117,10 +119,10 @@ describe('Header', () => {
 
   it('should render heading as clickable element', () => {
     renderHeader();
-    
+
     const heading = screen.getByText('Planning Poker');
     expect(heading).toBeInTheDocument();
-    
+
     // Verify it's clickable
     fireEvent.click(heading);
     expect(mockNavigate).toHaveBeenCalled();

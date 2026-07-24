@@ -1,6 +1,6 @@
 import { Box, Heading, useDisclosure } from '@chakra-ui/react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useRoom } from '../context/RoomContext';
+import { useRoom } from '../context/roomContext';
 import ConfirmationModal from './ConfirmationModal';
 
 const Header = () => {
@@ -26,21 +26,15 @@ const Header = () => {
 
   return (
     <>
-      <Box 
-        bg="brand.500" 
-        color="white" 
-        py={4} 
-        px={6}
-        boxShadow="md"
-      >
-        <Heading 
-          size="lg" 
-          cursor="pointer" 
+      <Box bg="brand.500" color="white" py={4} px={6} boxShadow="md">
+        <Heading
+          size="lg"
+          cursor="pointer"
           onClick={handleHeaderClick}
-          _hover={{ 
+          _hover={{
             opacity: 0.8,
             transform: 'scale(1.02)',
-            transition: 'all 0.2s ease'
+            transition: 'all 0.2s ease',
           }}
           transition="all 0.2s ease"
           userSelect="none"

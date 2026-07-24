@@ -3,29 +3,33 @@ import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import { ChakraProvider } from '@chakra-ui/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import RoomPage from '../../../src/pages/RoomPage';
-import { useRoom } from '../../../src/context/RoomContext';
+import { useRoom } from '../../../src/context/roomContext';
 import { Room, User, Story, Vote } from '../../../src/types';
 
 // Mock the useRoom hook
-jest.mock('../../../src/context/RoomContext', () => ({
+jest.mock('../../../src/context/roomContext', () => ({
   useRoom: jest.fn(),
 }));
 
 // Mock all child components
 jest.mock('../../../src/components/FibonacciDeck', () => {
-  return function MockFibonacciDeck({ 
-    selectedValue, 
-    onSelectCard, 
-    isVotingActive, 
-    isResultsVisible 
+  return function MockFibonacciDeck({
+    selectedValue,
+    onSelectCard,
+    isVotingActive,
+    isResultsVisible,
   }: any) {
     return (
       <div data-testid="fibonacci-deck">
         <div data-testid="deck-selected-value">{selectedValue || 'none'}</div>
         <div data-testid="deck-voting-active">{isVotingActive ? 'true' : 'false'}</div>
         <div data-testid="deck-results-visible">{isResultsVisible ? 'true' : 'false'}</div>
-        <button onClick={() => onSelectCard('5')} data-testid="card-5">5</button>
-        <button onClick={() => onSelectCard('8')} data-testid="card-8">8</button>
+        <button onClick={() => onSelectCard('5')} data-testid="card-5">
+          5
+        </button>
+        <button onClick={() => onSelectCard('8')} data-testid="card-8">
+          8
+        </button>
       </div>
     );
   };
@@ -152,7 +156,7 @@ describe('RoomPage', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     jest.useFakeTimers();
-    
+
     mockUseRoom.mockReturnValue({
       socket: null,
       room: mockRoom,
@@ -198,8 +202,6 @@ describe('RoomPage', () => {
 
       expect(screen.getByText('Connecting to server...')).toBeInTheDocument();
     });
-
-
   });
 
   describe('Error handling', () => {
@@ -340,15 +342,15 @@ describe('RoomPage', () => {
 
   describe('Voting functionality', () => {
     it('should handle card selection and show toast', () => {
-      const roomWithVoting = { 
-        ...mockRoom, 
+      const roomWithVoting = {
+        ...mockRoom,
         isVotingActive: true,
         currentStory: {
           ...mockStory,
-          votes: []
-        }
+          votes: [],
+        },
       };
-      
+
       mockUseRoom.mockReturnValue({
         socket: null,
         room: roomWithVoting,
@@ -382,15 +384,15 @@ describe('RoomPage', () => {
     });
 
     it('should show vote changed toast when changing vote', () => {
-      const roomWithVoting = { 
-        ...mockRoom, 
+      const roomWithVoting = {
+        ...mockRoom,
         isVotingActive: true,
         currentStory: {
           ...mockStory,
-          votes: [{ userId: 'user1', value: '3' }]
-        }
+          votes: [{ userId: 'user1', value: '3' }],
+        },
       };
-      
+
       mockUseRoom.mockReturnValue({
         socket: null,
         room: roomWithVoting,
@@ -424,23 +426,23 @@ describe('RoomPage', () => {
     });
 
     it('should show voting results when results are visible', () => {
-      const roomWithResults = { 
-        ...mockRoom, 
+      const roomWithResults = {
+        ...mockRoom,
         isVotingActive: false,
         isResultsVisible: true,
         currentStory: {
           ...mockStory,
           votes: [
             { userId: 'user1', value: '5' },
-            { userId: 'sm1', value: '8' }
-          ]
-        }
+            { userId: 'sm1', value: '8' },
+          ],
+        },
       };
-      
+
       const mockStats = {
         average: 6.5,
         distribution: { '5': 50, '8': 50 },
-        mostFrequent: null
+        mostFrequent: null,
       };
 
       mockUseRoom.mockReturnValue({
@@ -470,19 +472,19 @@ describe('RoomPage', () => {
 
   describe('All participants voted modal', () => {
     it('should show modal when all participants have voted (Scrum Master)', async () => {
-      const roomWithAllVotes = { 
-        ...mockRoom, 
+      const roomWithAllVotes = {
+        ...mockRoom,
         isVotingActive: true,
         isResultsVisible: false,
         currentStory: {
           ...mockStory,
           votes: [
             { userId: 'user1', value: '5' },
-            { userId: 'sm1', value: '8' }
-          ]
-        }
+            { userId: 'sm1', value: '8' },
+          ],
+        },
       };
-      
+
       mockUseRoom.mockReturnValue({
         socket: null,
         room: roomWithAllVotes,
@@ -511,23 +513,27 @@ describe('RoomPage', () => {
         expect(screen.getByText('All Participants Have Voted')).toBeInTheDocument();
       });
 
-      expect(screen.getByText('All team members have submitted their votes. You can now reveal the results.')).toBeInTheDocument();
+      expect(
+        screen.getByText(
+          'All team members have submitted their votes. You can now reveal the results.'
+        )
+      ).toBeInTheDocument();
     });
 
     it('should not show modal for participants', async () => {
-      const roomWithAllVotes = { 
-        ...mockRoom, 
+      const roomWithAllVotes = {
+        ...mockRoom,
         isVotingActive: true,
         isResultsVisible: false,
         currentStory: {
           ...mockStory,
           votes: [
             { userId: 'user1', value: '5' },
-            { userId: 'sm1', value: '8' }
-          ]
-        }
+            { userId: 'sm1', value: '8' },
+          ],
+        },
       };
-      
+
       mockUseRoom.mockReturnValue({
         socket: null,
         room: roomWithAllVotes,
@@ -558,19 +564,19 @@ describe('RoomPage', () => {
     });
 
     it('should handle reveal results from modal', async () => {
-      const roomWithAllVotes = { 
-        ...mockRoom, 
+      const roomWithAllVotes = {
+        ...mockRoom,
         isVotingActive: true,
         isResultsVisible: false,
         currentStory: {
           ...mockStory,
           votes: [
             { userId: 'user1', value: '5' },
-            { userId: 'sm1', value: '8' }
-          ]
-        }
+            { userId: 'sm1', value: '8' },
+          ],
+        },
       };
-      
+
       mockUseRoom.mockReturnValue({
         socket: null,
         room: roomWithAllVotes,
@@ -660,16 +666,16 @@ describe('RoomPage', () => {
 
   describe('Component props passing', () => {
     it('should pass correct props to child components', () => {
-      const roomWithVoting = { 
-        ...mockRoom, 
+      const roomWithVoting = {
+        ...mockRoom,
         isVotingActive: true,
         isResultsVisible: false,
         currentStory: {
           ...mockStory,
-          votes: [{ userId: 'user1', value: '5' }]
-        }
+          votes: [{ userId: 'user1', value: '5' }],
+        },
       };
-      
+
       mockUseRoom.mockReturnValue({
         socket: null,
         room: roomWithVoting,

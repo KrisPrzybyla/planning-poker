@@ -1,7 +1,8 @@
 import React from 'react';
 import { render, screen, waitFor, act } from '@testing-library/react';
 import { ChakraProvider } from '@chakra-ui/react';
-import { RoomProvider, useRoom } from '../../../src/context/RoomContext';
+import { RoomProvider } from '../../../src/context/RoomContext';
+import { useRoom } from '../../../src/context/roomContext';
 
 // Mock socket.io-client
 const mockSocket = {
@@ -39,8 +40,8 @@ jest.mock('../../../src/hooks/useHealthCheck', () => ({
     isUnhealthy: false,
     isChecking: false,
     manualCheck: jest.fn(),
-    lastChecked: '2024-01-01T12:00:00.000Z'
-  }))
+    lastChecked: '2024-01-01T12:00:00.000Z',
+  })),
 }));
 
 // Test component that uses the context
@@ -92,7 +93,10 @@ const TestComponent = () => {
       <button onClick={handleJoinRoom} data-testid="join-room">
         Join Room
       </button>
-      <button onClick={() => startVoting({ title: 'Test Story', description: 'Test Description' })} data-testid="start-voting">
+      <button
+        onClick={() => startVoting({ title: 'Test Story', description: 'Test Description' })}
+        data-testid="start-voting"
+      >
         Start Voting
       </button>
       <button onClick={() => submitVote('5')} data-testid="submit-vote">
@@ -169,7 +173,7 @@ describe('RoomContext', () => {
       renderWithProviders(<TestComponent />);
 
       // Simulate connect event
-      const connectHandler = mockSocket.on.mock.calls.find(call => call[0] === 'connect')[1];
+      const connectHandler = mockSocket.on.mock.calls.find((call) => call[0] === 'connect')[1];
       act(() => {
         connectHandler();
       });
@@ -183,13 +187,15 @@ describe('RoomContext', () => {
       renderWithProviders(<TestComponent />);
 
       // First connect
-      const connectHandler = mockSocket.on.mock.calls.find(call => call[0] === 'connect')[1];
+      const connectHandler = mockSocket.on.mock.calls.find((call) => call[0] === 'connect')[1];
       act(() => {
         connectHandler();
       });
 
       // Then disconnect
-      const disconnectHandler = mockSocket.on.mock.calls.find(call => call[0] === 'disconnect')[1];
+      const disconnectHandler = mockSocket.on.mock.calls.find(
+        (call) => call[0] === 'disconnect'
+      )[1];
       act(() => {
         disconnectHandler();
       });
@@ -202,7 +208,7 @@ describe('RoomContext', () => {
     it('should handle error event', async () => {
       renderWithProviders(<TestComponent />);
 
-      const errorHandler = mockSocket.on.mock.calls.find(call => call[0] === 'error')[1];
+      const errorHandler = mockSocket.on.mock.calls.find((call) => call[0] === 'error')[1];
       act(() => {
         errorHandler('Test error message');
       });
@@ -224,7 +230,9 @@ describe('RoomContext', () => {
         votingCount: 0,
       };
 
-      const roomUpdatedHandler = mockSocket.on.mock.calls.find(call => call[0] === 'roomUpdated')[1];
+      const roomUpdatedHandler = mockSocket.on.mock.calls.find(
+        (call) => call[0] === 'roomUpdated'
+      )[1];
       act(() => {
         roomUpdatedHandler(mockRoom);
       });
@@ -254,7 +262,9 @@ describe('RoomContext', () => {
         votingCount: 1,
       };
 
-      const roomUpdatedHandler = mockSocket.on.mock.calls.find(call => call[0] === 'roomUpdated')[1];
+      const roomUpdatedHandler = mockSocket.on.mock.calls.find(
+        (call) => call[0] === 'roomUpdated'
+      )[1];
       act(() => {
         roomUpdatedHandler(mockRoom);
       });
@@ -345,16 +355,21 @@ describe('RoomContext', () => {
 
   describe('Voting actions', () => {
     let component: any;
-    
+
     beforeEach(async () => {
       // Set up a mock room and user for voting tests
       component = renderWithProviders(<TestComponent />);
-      
+
       const mockUser = { id: 'user1', name: 'Test User', role: 'Scrum Master', isConnected: true };
       const mockRoom = {
         id: 'ROOM123',
         users: [mockUser],
-        currentStory: { id: 'story1', title: 'Test Story', votes: [], description: 'Test Description' },
+        currentStory: {
+          id: 'story1',
+          title: 'Test Story',
+          votes: [],
+          description: 'Test Description',
+        },
         isVotingActive: true,
         isResultsVisible: false,
         votingCount: 1,
@@ -382,7 +397,9 @@ describe('RoomContext', () => {
       });
 
       // Then simulate room update
-      const roomUpdatedHandler = mockSocket.on.mock.calls.find(call => call[0] === 'roomUpdated')[1];
+      const roomUpdatedHandler = mockSocket.on.mock.calls.find(
+        (call) => call[0] === 'roomUpdated'
+      )[1];
       act(() => {
         roomUpdatedHandler(mockRoom);
       });
@@ -397,10 +414,10 @@ describe('RoomContext', () => {
         startButton.click();
       });
 
-      expect(mockSocket.emit).toHaveBeenCalledWith(
-        'startVoting',
-        { roomId: 'ROOM123', story: { title: 'Test Story', description: 'Test Description' } }
-      );
+      expect(mockSocket.emit).toHaveBeenCalledWith('startVoting', {
+        roomId: 'ROOM123',
+        story: { title: 'Test Story', description: 'Test Description' },
+      });
     });
 
     it('should submit vote', () => {
@@ -411,10 +428,7 @@ describe('RoomContext', () => {
 
       // userId is intentionally NOT sent — the server derives identity from
       // the authenticated socket to prevent vote spoofing.
-      expect(mockSocket.emit).toHaveBeenCalledWith(
-        'submitVote',
-        { roomId: 'ROOM123', value: '5' }
-      );
+      expect(mockSocket.emit).toHaveBeenCalledWith('submitVote', { roomId: 'ROOM123', value: '5' });
     });
 
     it('should reveal results', () => {
@@ -423,10 +437,7 @@ describe('RoomContext', () => {
         revealButton.click();
       });
 
-      expect(mockSocket.emit).toHaveBeenCalledWith(
-        'revealResults',
-        { roomId: 'ROOM123' }
-      );
+      expect(mockSocket.emit).toHaveBeenCalledWith('revealResults', { roomId: 'ROOM123' });
     });
 
     it('should reset voting', () => {
@@ -435,10 +446,7 @@ describe('RoomContext', () => {
         resetButton.click();
       });
 
-      expect(mockSocket.emit).toHaveBeenCalledWith(
-        'resetVoting',
-        { roomId: 'ROOM123' }
-      );
+      expect(mockSocket.emit).toHaveBeenCalledWith('resetVoting', { roomId: 'ROOM123' });
     });
 
     it('should end session', () => {
@@ -447,10 +455,7 @@ describe('RoomContext', () => {
         endButton.click();
       });
 
-      expect(mockSocket.emit).toHaveBeenCalledWith(
-        'endSession',
-        { roomId: 'ROOM123' }
-      );
+      expect(mockSocket.emit).toHaveBeenCalledWith('endSession', { roomId: 'ROOM123' });
     });
   });
 
@@ -472,7 +477,7 @@ describe('RoomContext', () => {
       renderWithProviders(<TestComponent />);
 
       const mockUser = { id: 'user1', name: 'Test User', role: 'Participant' };
-      
+
       // Simulate user being set
       mockSocket.emit.mockImplementation((event, data, callback) => {
         if (event === 'createRoom') {
@@ -501,7 +506,9 @@ describe('RoomContext', () => {
       renderWithProviders(<TestComponent />);
 
       // Simulate session ended event
-      const sessionEndedHandler = mockSocket.on.mock.calls.find(call => call[0] === 'sessionEnded')[1];
+      const sessionEndedHandler = mockSocket.on.mock.calls.find(
+        (call) => call[0] === 'sessionEnded'
+      )[1];
       act(() => {
         sessionEndedHandler();
       });

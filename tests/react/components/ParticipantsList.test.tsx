@@ -5,7 +5,7 @@ import ParticipantsList from '../../../src/components/ParticipantsList';
 import { User, Vote } from '../../../src/types';
 
 // Mock the useRoom hook
-jest.mock('../../../src/context/RoomContext', () => ({
+jest.mock('../../../src/context/roomContext', () => ({
   useRoom: () => ({
     currentUser: { id: 'user1', role: 'Scrum Master' },
     removeUser: jest.fn(),
@@ -19,54 +19,50 @@ const mockUsers: User[] = [
     name: 'John Doe',
     role: 'Scrum Master',
     roomId: 'room1',
-    isConnected: true
+    isConnected: true,
   },
   {
-    id: 'user2', 
+    id: 'user2',
     name: 'Jane Smith',
     role: 'Participant',
     roomId: 'room1',
-    isConnected: true
+    isConnected: true,
   },
   {
     id: 'user3',
     name: 'Bob Wilson',
     role: 'Participant',
     roomId: 'room1',
-    isConnected: false
-  }
+    isConnected: false,
+  },
 ];
 
 const mockVotes: Vote[] = [
   {
     userId: 'user1',
-    value: '5'
+    value: '5',
   },
   {
     userId: 'user3',
-    value: '8'
-  }
+    value: '8',
+  },
 ];
 
 const renderWithChakra = (component: React.ReactElement) => {
-  return render(
-    <ChakraProvider>
-      {component}
-    </ChakraProvider>
-  );
+  return render(<ChakraProvider>{component}</ChakraProvider>);
 };
 
 describe('ParticipantsList', () => {
   it('renders all users correctly', () => {
     renderWithChakra(
-      <ParticipantsList 
+      <ParticipantsList
         users={mockUsers}
         votes={mockVotes}
         isVotingActive={false}
         isResultsVisible={true}
       />
     );
-    
+
     // Check that user names are rendered
     expect(screen.getByText('John Doe')).toBeInTheDocument();
     expect(screen.getByText('Jane Smith')).toBeInTheDocument();
@@ -75,42 +71,42 @@ describe('ParticipantsList', () => {
 
   it('shows scrum master badge correctly', () => {
     renderWithChakra(
-      <ParticipantsList 
+      <ParticipantsList
         users={mockUsers}
         votes={mockVotes}
         isVotingActive={false}
         isResultsVisible={true}
       />
     );
-    
+
     // Check for scrum master badge
     expect(screen.getByText('SM')).toBeInTheDocument();
   });
 
   it('shows offline status for disconnected users', () => {
     renderWithChakra(
-      <ParticipantsList 
+      <ParticipantsList
         users={mockUsers}
         votes={mockVotes}
         isVotingActive={false}
         isResultsVisible={true}
       />
     );
-    
+
     // Check that offline status is shown for disconnected user
     expect(screen.getByText('OFFLINE')).toBeInTheDocument();
   });
 
   it('shows voting status during voting', () => {
     renderWithChakra(
-      <ParticipantsList 
+      <ParticipantsList
         users={mockUsers}
         votes={mockVotes}
         isVotingActive={true}
         isResultsVisible={false}
       />
     );
-    
+
     // During voting, votes should be hidden
     expect(screen.getByText('John Doe')).toBeInTheDocument();
     expect(screen.getByText('Jane Smith')).toBeInTheDocument();
@@ -118,14 +114,14 @@ describe('ParticipantsList', () => {
 
   it('shows participant count correctly', () => {
     renderWithChakra(
-      <ParticipantsList 
+      <ParticipantsList
         users={mockUsers}
         votes={mockVotes}
         isVotingActive={false}
         isResultsVisible={true}
       />
     );
-    
+
     // Check participant count
     expect(screen.getByText('Participants (3)')).toBeInTheDocument();
   });

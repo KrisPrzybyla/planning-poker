@@ -10,7 +10,7 @@ import {
   Heading,
   useToast,
 } from '@chakra-ui/react';
-import { useRoom } from '../context/RoomContext';
+import { useRoom } from '../context/roomContext';
 
 interface StoryFormProps {
   onClose?: () => void;
@@ -25,12 +25,12 @@ const StoryForm = ({ onClose }: StoryFormProps) => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // If title is empty, it will be set to "Voting #X" on the server side
     const finalTitle = title.trim() || '';
 
     setIsLoading(true);
-    
+
     try {
       startVoting({ title: finalTitle, description });
       toast({

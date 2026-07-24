@@ -11,7 +11,7 @@ import {
   Text,
   useToast,
 } from '@chakra-ui/react';
-import { useRoom } from '../context/RoomContext';
+import { useRoom } from '../context/roomContext';
 import { useSavedUserName } from '../hooks/useSavedUserName';
 
 interface JoinRoomFormProps {
@@ -35,7 +35,7 @@ const JoinRoomForm = ({ initialRoomId }: JoinRoomFormProps) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!roomId.trim()) {
       toast({
         title: 'Room code required',
@@ -59,7 +59,7 @@ const JoinRoomForm = ({ initialRoomId }: JoinRoomFormProps) => {
     }
 
     setIsLoading(true);
-    
+
     try {
       // Clean up room ID (remove spaces, uppercase)
       const cleanRoomId = roomId.replace(/\s+/g, '').toUpperCase();

@@ -1,11 +1,7 @@
-import {
-  Box,
-  List,
-  Heading,
-} from '@chakra-ui/react';
+import { Box, List, Heading } from '@chakra-ui/react';
 import { memo, useCallback } from 'react';
 import { User, Vote } from '../types';
-import { useRoom } from '../context/RoomContext';
+import { useRoom } from '../context/roomContext';
 import UserItem from './UserItem';
 
 interface ParticipantsListProps {
@@ -23,14 +19,17 @@ const ParticipantsList = ({
 }: ParticipantsListProps) => {
   const { currentUser, removeUser } = useRoom();
 
-  const handleRemoveUser = useCallback(async (userToRemove: User) => {
-    try {
-      await removeUser(userToRemove.id);
-    } catch (error) {
-      console.error('Failed to remove user:', error);
-      alert('Failed to remove user. Please try again.');
-    }
-  }, [removeUser]);
+  const handleRemoveUser = useCallback(
+    async (userToRemove: User) => {
+      try {
+        await removeUser(userToRemove.id);
+      } catch (error) {
+        console.error('Failed to remove user:', error);
+        alert('Failed to remove user. Please try again.');
+      }
+    },
+    [removeUser]
+  );
 
   return (
     <Box p={4} borderWidth="1px" borderRadius="lg" bg="white">

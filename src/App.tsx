@@ -1,6 +1,7 @@
 import { ChakraProvider, extendTheme, Box } from '@chakra-ui/react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { RoomProvider, useRoom } from './context/RoomContext';
+import { RoomProvider } from './context/RoomContext';
+import { useRoom } from './context/roomContext';
 import { useBeforeUnload } from './hooks/useBeforeUnload';
 
 // Components
@@ -40,27 +41,24 @@ function AppContent() {
   // Only Scrum Master should see health indicator
 
   const { room, currentUser, isConnected } = useRoom();
-  
+
   // Enable beforeunload protection when user is in an active room
   const shouldProtect = Boolean(
-    room && 
-    currentUser && 
-    isConnected && 
-    (room.isVotingActive || room.currentStory)
+    room && currentUser && isConnected && (room.isVotingActive || room.currentStory)
   );
 
   useBeforeUnload({
     enabled: shouldProtect,
-    message: 'Are you sure you want to leave? You will lose your connection to the Planning Poker session and may miss the voting.'
+    message:
+      'Are you sure you want to leave? You will lose your connection to the Planning Poker session and may miss the voting.',
   });
 
   return (
     <Router>
       <Box minH="100vh" bg="gray.50">
         <Header />
-        {(currentUser?.role === 'Scrum Master' || currentUser?.role === 'Temporary Scrum Master') && (
-          <HealthIndicator showDetails={true} />
-        )}
+        {(currentUser?.role === 'Scrum Master' ||
+          currentUser?.role === 'Temporary Scrum Master') && <HealthIndicator showDetails={true} />}
         <Box>
           <Routes>
             <Route path="/" element={<HomePage />} />
@@ -81,7 +79,7 @@ function App() {
         <AppContent />
       </RoomProvider>
     </ChakraProvider>
-  )
+  );
 }
 
-export default App
+export default App;

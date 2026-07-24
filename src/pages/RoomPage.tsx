@@ -10,7 +10,7 @@ import {
   AlertDescription,
   useToast,
 } from '@chakra-ui/react';
-import { useRoom } from '../context/RoomContext';
+import { useRoom } from '../context/roomContext';
 import FibonacciDeck from '../components/FibonacciDeck';
 import RoomInfo from '../components/RoomInfo';
 import ParticipantsList from '../components/ParticipantsList';
@@ -29,15 +29,8 @@ const RoomPage = () => {
   const { roomId } = useParams<{ roomId: string }>();
   const navigate = useNavigate();
   const toast = useToast();
-  const {
-    room,
-    currentUser,
-    isConnected,
-    error,
-    votingStats,
-    submitVote,
-    revealResults,
-  } = useRoom();
+  const { room, currentUser, isConnected, error, votingStats, submitVote, revealResults } =
+    useRoom();
 
   // Custom hooks
   const { isOpen, onClose } = useVotingModal({ room, currentUser });
@@ -57,7 +50,8 @@ const RoomPage = () => {
     return <LoadingSpinner />;
   }
 
-  const isScrumMaster = currentUser.role === 'Scrum Master' || currentUser.role === 'Temporary Scrum Master';
+  const isScrumMaster =
+    currentUser.role === 'Scrum Master' || currentUser.role === 'Temporary Scrum Master';
 
   const handleRevealResults = () => {
     onClose();
@@ -84,19 +78,12 @@ const RoomPage = () => {
         <RoomInfo roomId={room.id} />
       </Flex>
 
-      <Grid
-        templateColumns={GRID_BREAKPOINTS.LAYOUT}
-        gap={6}
-      >
+      <Grid templateColumns={GRID_BREAKPOINTS.LAYOUT} gap={6}>
         {/* Main Content */}
         <GridItem>
           <Flex direction="column" gap={6}>
-
             {room.currentStory ? (
-              <CurrentStory
-                story={room.currentStory}
-                isVotingActive={room.isVotingActive}
-              />
+              <CurrentStory story={room.currentStory} isVotingActive={room.isVotingActive} />
             ) : (
               <Alert status="info" borderRadius="md">
                 <AlertIcon />
@@ -109,10 +96,7 @@ const RoomPage = () => {
             )}
 
             {room.isResultsVisible && room.currentStory && votingStats && (
-              <VotingResults
-                stats={votingStats}
-                totalVotes={room.currentStory.votes.length}
-              />
+              <VotingResults stats={votingStats} totalVotes={room.currentStory.votes.length} />
             )}
 
             <Box mt={4}>

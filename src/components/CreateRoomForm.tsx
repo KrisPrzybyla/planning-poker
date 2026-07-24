@@ -12,7 +12,7 @@ import {
   Textarea,
   useToast,
 } from '@chakra-ui/react';
-import { useRoom } from '../context/RoomContext';
+import { useRoom } from '../context/roomContext';
 import { useSavedUserName } from '../hooks/useSavedUserName';
 
 const CreateRoomForm = () => {
@@ -26,7 +26,7 @@ const CreateRoomForm = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!userName.trim()) {
       toast({
         title: 'Name required',
@@ -39,16 +39,16 @@ const CreateRoomForm = () => {
     }
 
     setIsLoading(true);
-    
+
     try {
       // Always pass initial voting information to automatically start voting
       const initialStory = {
         title: storyTitle.trim(),
-        description: storyDescription.trim()
+        description: storyDescription.trim(),
       };
-      
+
       const roomId = await createRoom(userName, initialStory);
-      
+
       // Redirect to room
       navigate(`/room/${roomId}`);
     } catch (error) {

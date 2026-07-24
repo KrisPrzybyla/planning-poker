@@ -2,10 +2,10 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { ChakraProvider } from '@chakra-ui/react';
 import ScrumMasterControls from '../../../src/components/ScrumMasterControls';
-import { useRoom } from '../../../src/context/RoomContext';
+import { useRoom } from '../../../src/context/roomContext';
 
 // Mock the useRoom hook
-jest.mock('../../../src/context/RoomContext', () => ({
+jest.mock('../../../src/context/roomContext', () => ({
   useRoom: jest.fn(),
 }));
 
@@ -32,11 +32,7 @@ Object.defineProperty(window, 'confirm', {
 const mockUseRoom = useRoom as jest.MockedFunction<typeof useRoom>;
 
 const renderWithChakra = (component: React.ReactElement) => {
-  return render(
-    <ChakraProvider>
-      {component}
-    </ChakraProvider>
-  );
+  return render(<ChakraProvider>{component}</ChakraProvider>);
 };
 
 describe('ScrumMasterControls', () => {
@@ -47,7 +43,7 @@ describe('ScrumMasterControls', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockConfirm.mockReturnValue(true);
-    
+
     mockUseRoom.mockReturnValue({
       socket: null,
       room: null,
@@ -69,11 +65,7 @@ describe('ScrumMasterControls', () => {
   describe('Button rendering', () => {
     it('should render all control buttons', () => {
       renderWithChakra(
-        <ScrumMasterControls
-          isVotingActive={false}
-          isResultsVisible={false}
-          hasStory={false}
-        />
+        <ScrumMasterControls isVotingActive={false} isResultsVisible={false} hasStory={false} />
       );
 
       expect(screen.getByText('Add Voting')).toBeInTheDocument();
@@ -84,11 +76,7 @@ describe('ScrumMasterControls', () => {
 
     it('should show "New Voting" when story exists', () => {
       renderWithChakra(
-        <ScrumMasterControls
-          isVotingActive={false}
-          isResultsVisible={false}
-          hasStory={true}
-        />
+        <ScrumMasterControls isVotingActive={false} isResultsVisible={false} hasStory={true} />
       );
 
       expect(screen.getByText('New Voting')).toBeInTheDocument();
@@ -99,11 +87,7 @@ describe('ScrumMasterControls', () => {
   describe('Button states', () => {
     it('should disable Reveal Results when voting is not active', () => {
       renderWithChakra(
-        <ScrumMasterControls
-          isVotingActive={false}
-          isResultsVisible={false}
-          hasStory={true}
-        />
+        <ScrumMasterControls isVotingActive={false} isResultsVisible={false} hasStory={true} />
       );
 
       const revealButton = screen.getByText('Reveal Results');
@@ -112,11 +96,7 @@ describe('ScrumMasterControls', () => {
 
     it('should disable Reveal Results when results are already visible', () => {
       renderWithChakra(
-        <ScrumMasterControls
-          isVotingActive={true}
-          isResultsVisible={true}
-          hasStory={true}
-        />
+        <ScrumMasterControls isVotingActive={true} isResultsVisible={true} hasStory={true} />
       );
 
       const revealButton = screen.getByText('Reveal Results');
@@ -125,11 +105,7 @@ describe('ScrumMasterControls', () => {
 
     it('should disable Reveal Results when no story exists', () => {
       renderWithChakra(
-        <ScrumMasterControls
-          isVotingActive={true}
-          isResultsVisible={false}
-          hasStory={false}
-        />
+        <ScrumMasterControls isVotingActive={true} isResultsVisible={false} hasStory={false} />
       );
 
       const revealButton = screen.getByText('Reveal Results');
@@ -138,11 +114,7 @@ describe('ScrumMasterControls', () => {
 
     it('should enable Reveal Results when voting is active, results not visible, and story exists', () => {
       renderWithChakra(
-        <ScrumMasterControls
-          isVotingActive={true}
-          isResultsVisible={false}
-          hasStory={true}
-        />
+        <ScrumMasterControls isVotingActive={true} isResultsVisible={false} hasStory={true} />
       );
 
       const revealButton = screen.getByText('Reveal Results');
@@ -151,11 +123,7 @@ describe('ScrumMasterControls', () => {
 
     it('should disable Reset Voting when no story exists', () => {
       renderWithChakra(
-        <ScrumMasterControls
-          isVotingActive={false}
-          isResultsVisible={false}
-          hasStory={false}
-        />
+        <ScrumMasterControls isVotingActive={false} isResultsVisible={false} hasStory={false} />
       );
 
       const resetButton = screen.getByText('Reset Voting');
@@ -164,11 +132,7 @@ describe('ScrumMasterControls', () => {
 
     it('should enable Reset Voting when story exists', () => {
       renderWithChakra(
-        <ScrumMasterControls
-          isVotingActive={false}
-          isResultsVisible={false}
-          hasStory={true}
-        />
+        <ScrumMasterControls isVotingActive={false} isResultsVisible={false} hasStory={true} />
       );
 
       const resetButton = screen.getByText('Reset Voting');
@@ -179,11 +143,7 @@ describe('ScrumMasterControls', () => {
   describe('Button actions', () => {
     it('should have Reveal Results button available', () => {
       renderWithChakra(
-        <ScrumMasterControls
-          isVotingActive={true}
-          isResultsVisible={false}
-          hasStory={true}
-        />
+        <ScrumMasterControls isVotingActive={true} isResultsVisible={false} hasStory={true} />
       );
 
       const revealButton = screen.getByText('Reveal Results');
@@ -192,11 +152,7 @@ describe('ScrumMasterControls', () => {
 
     it('should have Reset Voting button available', () => {
       renderWithChakra(
-        <ScrumMasterControls
-          isVotingActive={false}
-          isResultsVisible={false}
-          hasStory={true}
-        />
+        <ScrumMasterControls isVotingActive={false} isResultsVisible={false} hasStory={true} />
       );
 
       const resetButton = screen.getByText('Reset Voting');
@@ -205,11 +161,7 @@ describe('ScrumMasterControls', () => {
 
     it('should have End Session button available', () => {
       renderWithChakra(
-        <ScrumMasterControls
-          isVotingActive={false}
-          isResultsVisible={false}
-          hasStory={false}
-        />
+        <ScrumMasterControls isVotingActive={false} isResultsVisible={false} hasStory={false} />
       );
 
       const endButton = screen.getByText('End Session');
@@ -220,11 +172,7 @@ describe('ScrumMasterControls', () => {
   describe('Story Form Modal', () => {
     it('should have Add Voting button when no story exists', () => {
       renderWithChakra(
-        <ScrumMasterControls
-          isVotingActive={false}
-          isResultsVisible={false}
-          hasStory={false}
-        />
+        <ScrumMasterControls isVotingActive={false} isResultsVisible={false} hasStory={false} />
       );
 
       const addButton = screen.getByText('Add Voting');
@@ -233,11 +181,7 @@ describe('ScrumMasterControls', () => {
 
     it('should have New Voting button when story exists', () => {
       renderWithChakra(
-        <ScrumMasterControls
-          isVotingActive={false}
-          isResultsVisible={false}
-          hasStory={true}
-        />
+        <ScrumMasterControls isVotingActive={false} isResultsVisible={false} hasStory={true} />
       );
 
       const newButton = screen.getByText('New Voting');
@@ -248,11 +192,7 @@ describe('ScrumMasterControls', () => {
   describe('Component rendering', () => {
     it('should render component with all buttons', () => {
       renderWithChakra(
-        <ScrumMasterControls
-          isVotingActive={true}
-          isResultsVisible={false}
-          hasStory={true}
-        />
+        <ScrumMasterControls isVotingActive={true} isResultsVisible={false} hasStory={true} />
       );
 
       expect(screen.getByText('New Voting')).toBeInTheDocument();
